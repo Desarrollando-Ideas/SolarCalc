@@ -425,6 +425,40 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
   body{background:#fff;color:#000}
   [data-theme]{--bg:#fff;--bg2:#fff;--bg3:#f5f5f5;--text:#000;--text2:#555;--border:#ccc}
 }
+
+/* ── AUTO TOGGLE */
+.auto-toggle{
+  display:flex;align-items:center;gap:6px;margin-top:6px;
+  font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;user-select:none;
+}
+.auto-toggle input{width:auto;accent-color:var(--green)}
+.auto-badge{
+  font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;
+  background:var(--green-dim);color:var(--green);margin-left:6px;
+}
+.manual-badge{
+  font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;
+  background:var(--amber-dim);color:var(--amber);margin-left:6px;
+}
+
+/* ── BATTERY ROW SELECT */
+#bat-results table tbody tr{cursor:pointer;transition:background var(--transition)}
+#bat-results table tbody tr:hover{background:var(--bg3)}
+#bat-results table tbody tr.row-selected{background:var(--green-dim)!important;outline:1px solid var(--green)}
+#bat-results table tbody tr td:first-child::before{content:'○ ';color:var(--text3)}
+#bat-results table tbody tr.row-selected td:first-child::before{content:'● ';color:var(--green)}
+
+/* ── ACCOUNT / LOGIN */
+.userbox{display:flex;align-items:center;gap:8px}
+.user-avatar{width:28px;height:28px;border-radius:50%;border:1px solid var(--border)}
+.user-chip{
+  display:flex;align-items:center;gap:6px;padding:3px 10px 3px 3px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:99px;
+  font-size:11px;font-weight:600;color:var(--text);cursor:pointer;
+}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.sync-dot.on{background:var(--green)}
+.sync-dot.busy{background:var(--amber)}
 </style>
 </head>
 <body>
@@ -442,8 +476,12 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
     <div class="tnav" onclick="showSection('s-bat-cat','s-bat-cat')">🔋 Baterías</div>
     <div class="tnav" onclick="showSection('s-aire','s-aire')">❄️ Aires A/C</div>
     <div class="tnav" onclick="showSection('s-ai','s-ai')">🤖 Asesor IA</div>
+    <div class="tnav" onclick="showSection('s-cuenta','s-cuenta')">🔑 Cuenta</div>
   </nav>
   <div class="topbar-right">
+    <div id="userbox-area">
+      <button class="btn btn-secondary btn-sm" onclick="signInGoogle()">🔐 Iniciar sesión</button>
+    </div>
     <button class="icon-btn" id="themeBtn" title="Cambiar tema">🌙</button>
     <button class="icon-btn" onclick="window.print()" title="Imprimir">🖨️</button>
   </div>
@@ -468,6 +506,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
   <div class="sidebar-section">
     <div class="sidebar-label">Herramientas</div>
     <div class="slink" onclick="showSection('s-ai')"><span class="slink-icon">🤖</span>Asesor IA</div>
+    <div class="slink" onclick="showSection('s-cuenta')"><span class="slink-icon">🔑</span>Cuenta</div>
   </div>
   <hr>
   <div style="font-size:10px;color:var(--text3);padding:0 8px;line-height:1.6">
@@ -563,6 +602,14 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
           <input type="number" id="p-fs" value="1.25" step="0.05" oninput="calcAll()">
         </div>
       </div>
+      <div class="g3" style="margin-top:10px">
+        <div class="stat green" style="grid-column:span 1">
+          <div class="stat-label">Inclinación óptima de paneles</div>
+          <div class="stat-val" id="tilt-val">—</div>
+          <div class="stat-unit">grados, fijo todo el año</div>
+          <div class="stat-formula" id="tilt-formula">Ángulo ≈ |Latitud|</div>
+        </div>
+      </div>
     </div>
 
     <!-- TABLA DE CARGAS -->
@@ -625,6 +672,10 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             <select id="panel-sel" onchange="onPanelChange()">
               <option value="">— Seleccionar del catálogo —</option>
             </select>
+            <label class="auto-toggle">
+              <input type="checkbox" id="panel-auto" checked onchange="toggleAutoPanel()">
+              🤖 Recomendar automáticamente el panel más cercano al resultado
+            </label>
           </div>
           <div class="field-row">
             <div class="field">
@@ -674,6 +725,10 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             <select id="inv-sel" onchange="onInvChange()">
               <option value="">— Seleccionar del catálogo —</option>
             </select>
+            <label class="auto-toggle">
+              <input type="checkbox" id="inv-auto" checked onchange="toggleAutoInv()">
+              🤖 Recomendar automáticamente el inversor más cercano al resultado
+            </label>
           </div>
           <div class="field-row">
             <div class="field">
@@ -735,6 +790,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         </div>
       </div>
       <div id="bat-results"></div>
+      <div class="alert alert-info" style="margin:8px 0"><span class="alert-icon">💡</span><div style="font-size:11px">Haz clic en una fila de la tabla para elegir esa capacidad de batería. Por defecto se selecciona automáticamente la opción más eficiente (menor cantidad de baterías).</div></div>
       <div class="formula-box" id="bat-formula">Configura las baterías para ver el cálculo…</div>
     </div>
 
@@ -888,6 +944,53 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
           <span class="alert-icon">💡</span><div style="font-size:11px">Esta base de datos responde sin consumir API. Solo consultas complejas van al modelo.</div>
         </div>
         <div id="kb-topics"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ SECCIÓN: CUENTA -->
+<section class="section" id="s-cuenta">
+  <div class="page-title">
+    <div><h1>Cuenta y Sincronización</h1><p>Inicia sesión con Google para guardar tu configuración de forma privada</p></div>
+  </div>
+  <div class="g2">
+    <div>
+      <div class="card">
+        <div class="card-title"><span>👤</span> Sesión</div>
+        <div id="cuenta-status">
+          <div class="alert alert-info"><span class="alert-icon">ℹ️</span>No has iniciado sesión. Tu configuración solo se guarda en este navegador (localStorage).</div>
+          <button class="btn btn-primary btn-sm" onclick="signInGoogle()">🔐 Iniciar sesión con Google</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>🔑</span> Tu API Key / Worker (privada)</div>
+        <div class="alert alert-info" style="margin-bottom:10px">
+          <span class="alert-icon">💡</span>
+          <div style="font-size:11px">Cada usuario guarda <strong>su propia</strong> clave. Con sesión iniciada, se guarda en tu documento de Firestore protegido por reglas de seguridad (solo tu usuario puede leerla o escribirla). Sin sesión, se guarda solo en este navegador.</div>
+        </div>
+        <div class="field">
+          <label>Cloudflare Worker URL (recomendado)</label>
+          <input type="text" id="acc-worker-url" placeholder="https://tu-worker.workers.dev" oninput="onAccSettingsChange()">
+        </div>
+        <div class="field">
+          <label>API Key directa de Anthropic (opcional, alternativa)</label>
+          <input type="password" id="acc-api-key" placeholder="sk-ant-..." oninput="onAccSettingsChange()">
+        </div>
+        <div class="alert alert-warn" style="margin-top:8px">
+          <span class="alert-icon">⚠️</span>
+          <div style="font-size:11px">Si usas la API Key directa, viajará en las peticiones que hagas desde tu propio navegador (visible en tus propias herramientas de desarrollador). Otros usuarios de la app <strong>nunca</strong> ven ni pueden usar tu clave: cada cuenta solo accede a la suya. Para mayor seguridad, prefiere el Worker.</div>
+        </div>
+        <div id="acc-save-status" style="font-size:11px;color:var(--text3);margin-top:8px"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title"><span>🛡️</span> Privacidad por usuario</div>
+        <div style="font-size:12px;line-height:1.7;color:var(--text2)">
+          <p>El acceso a tus datos guardados (proyectos y claves) queda restringido a tu propio usuario mediante reglas de seguridad de Firestore basadas en tu <code>uid</code> de Google.</p>
+          <p style="margin-top:8px">Nadie más — ni otros usuarios de SolarCalc Pro — puede leer o modificar tu configuración, aunque conozca la URL de la app.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -1048,6 +1151,103 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════ FIREBASE (login + configuración privada por usuario) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc }
+    from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAuM0Bqk1vMgUEPZRmGucWCCaisYc4HkzA",
+    authDomain: "proyecto-de-paneles.firebaseapp.com",
+    projectId: "proyecto-de-paneles",
+    storageBucket: "proyecto-de-paneles.firebasestorage.app",
+    messagingSenderId: "879834807516",
+    appId: "1:879834807516:web:1c6710cde40a2cbb69c819",
+    measurementId: "G-7X41R72PLR"
+  };
+
+  const app      = initializeApp(firebaseConfig);
+  const auth     = getAuth(app);
+  const db       = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  let currentUser = null;
+  let saveTimer   = null;
+
+  window.signInGoogle = async function(){
+    try{ await signInWithPopup(auth, provider); }
+    catch(e){ alert('No se pudo iniciar sesión: ' + e.message); }
+  };
+  window.signOutUser = async function(){ await signOut(auth); };
+
+  async function loadUserSettings(uid){
+    try{
+      const snap = await getDoc(doc(db,'users',uid));
+      if(snap.exists()){
+        const data = snap.data();
+        if(data.workerUrl){
+          document.getElementById('acc-worker-url').value = data.workerUrl;
+          document.getElementById('ai-worker-url').value  = data.workerUrl;
+        }
+        if(data.apiKey) document.getElementById('acc-api-key').value = data.apiKey;
+      }
+    }catch(e){ console.error('Error cargando configuración:', e); }
+  }
+
+  // Guarda la config del usuario (Worker URL / API Key) — privada por cuenta.
+  window.onAccSettingsChange = function(){
+    const status    = document.getElementById('acc-save-status');
+    const workerUrl = document.getElementById('acc-worker-url').value.trim();
+    const apiKey    = document.getElementById('acc-api-key').value.trim();
+    const aiWorker  = document.getElementById('ai-worker-url');
+    if(aiWorker && workerUrl) aiWorker.value = workerUrl;
+
+    if(!currentUser){
+      localStorage.setItem('sc-worker-url', workerUrl);
+      localStorage.setItem('sc-api-key', apiKey);
+      if(status) status.textContent = '💾 Guardado en este navegador. Inicia sesión para sincronizar de forma privada en tu cuenta.';
+      return;
+    }
+    if(status) status.textContent = '💫 Guardando…';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async ()=>{
+      try{
+        await setDoc(doc(db,'users',currentUser.uid), { workerUrl, apiKey, updatedAt: Date.now() }, {merge:true});
+        if(status) status.textContent = '✅ Guardado de forma privada en tu cuenta — solo tú puedes verlo.';
+      }catch(e){
+        if(status) status.textContent = '⚠️ Error guardando: ' + e.message;
+      }
+    }, 600);
+  };
+
+  onAuthStateChanged(auth, async (user)=>{
+    currentUser = user;
+    const area          = document.getElementById('userbox-area');
+    const cuentaStatus   = document.getElementById('cuenta-status');
+    if(user){
+      area.innerHTML = `<div class="user-chip" onclick="signOutUser()" title="Cerrar sesión">
+        <img class="user-avatar" src="${user.photoURL||''}" onerror="this.style.display='none'">
+        ${(user.displayName||user.email||'Usuario').split(' ')[0]}</div>`;
+      if(cuentaStatus) cuentaStatus.innerHTML = `
+        <div class="alert alert-ok"><span class="alert-icon">✅</span>Sesión iniciada como <strong>${user.email}</strong>. Tu configuración se guarda de forma privada, solo accesible para tu cuenta.</div>
+        <button class="btn btn-secondary btn-sm" onclick="signOutUser()">Cerrar sesión</button>`;
+      await loadUserSettings(user.uid);
+    } else {
+      area.innerHTML = `<button class="btn btn-secondary btn-sm" id="btn-login" onclick="signInGoogle()">🔐 Iniciar sesión</button>`;
+      if(cuentaStatus) cuentaStatus.innerHTML = `
+        <div class="alert alert-info"><span class="alert-icon">ℹ️</span>No has iniciado sesión. Tu configuración solo se guarda en este navegador (localStorage).</div>
+        <button class="btn btn-primary btn-sm" onclick="signInGoogle()">🔐 Iniciar sesión con Google</button>`;
+      const lw = localStorage.getItem('sc-worker-url');
+      const lk = localStorage.getItem('sc-api-key');
+      if(lw){ document.getElementById('acc-worker-url').value = lw; document.getElementById('ai-worker-url').value = lw; }
+      if(lk){ document.getElementById('acc-api-key').value = lk; }
+    }
+  });
+</script>
+
 <!-- ═══════════════════════════════════════════ SCRIPT -->
 <script>
 /* ══════════════════════════════════════════════════════
@@ -1133,6 +1333,11 @@ let editingBat   = null;
 let editingAire  = null;
 let aiHistory    = [];
 let calcMode     = 'manual';
+
+// Auto-recomendación y selección manual de baterías
+let autoPanel      = true;   // si true, el panel se elige solo del catálogo
+let autoInv        = true;   // si true, el inversor se elige solo del catálogo
+let selectedBatAh  = null;   // capacidad (Ah) elegida manualmente en la tabla de baterías; null = automático (la más eficiente)
 
 /* ══════════════════════════════════════════════════════
    HELPERS
@@ -1290,6 +1495,22 @@ function calcAll(){
     </div>
   `;
 
+  // ÁNGULO ÓPTIMO DE INCLINACIÓN (regla práctica: inclinación fija ≈ latitud del sitio)
+  const lat      = +document.getElementById('p-lat').value || 0;
+  const tiltOpt  = Math.round(Math.abs(lat)*10)/10;
+  const tiltEl   = document.getElementById('tilt-val');
+  if(tiltEl){
+    document.getElementById('tilt-val').textContent = tiltOpt + '°';
+    document.getElementById('tilt-formula').textContent = `Inclinación ≈ |Latitud| = |${lat}°| = ${tiltOpt}° (orientado hacia el ecuador)`;
+  }
+
+  // PANELES — potencia pico requerida (se calcula antes para poder recomendar el panel óptimo)
+  const ppico = hsp > 0 ? consFSWh / hsp : 0;
+  if(autoPanel){
+    const bestPanel = autoSelectPanel(ppico);
+    if(bestPanel) applyPanelToFields(bestPanel);
+  }
+
   // PANELES
   const panWp   = +document.getElementById('pan-wp').value  ||480;
   const panIsc  = +document.getElementById('pan-isc').value ||14;
@@ -1298,7 +1519,6 @@ function calcAll(){
   const panPar  = +document.getElementById('pan-par').value ||1;
   const panSer  = +document.getElementById('pan-ser').value ||1;
 
-  const ppico   = hsp > 0 ? consFSWh / hsp : 0;
   const nPanel  = panWp > 0 ? ppico / panWp : 0;
   const nPanelR = Math.ceil(nPanel);
   const iscPar  = panIsc * panPar;
@@ -1327,6 +1547,12 @@ function calcAll(){
 \n  VOC=${panVoc}×${panSer}ser×${fs}FS = ${f2(vocFS)}V → <span class="f-res">DPS DC ≥ ${f0(vocFS)} V</span>`;
 
   // INVERSOR
+  if(autoInv){
+    const tipoPref = document.getElementById('inv-tipo').value;
+    const vbatPref = +document.getElementById('inv-vbat').value||48;
+    const bestInv  = autoSelectInv(potFSW, tipoPref, vbatPref);
+    if(bestInv) applyInvToFields(bestInv);
+  }
   const invPot  = +document.getElementById('inv-pot').value||5000;
   const vbat    = +document.getElementById('inv-vbat').value||48;
   const invTipo = document.getElementById('inv-tipo').value;
@@ -1360,11 +1586,28 @@ function calcAll(){
   const ahNec    = consBat / batV;
   const ahReal   = ahNec / batDOD;
   const batAhs   = [100,150,200,250,300,400];
-  const batRows  = batAhs.map(ah=>{
+  const batOptions = batAhs.map(ah=>{
     const nb = Math.ceil(ahReal/ah);
     const vc = (batV/12); // baterías 12V en serie para llegar a tensión
     const nbTotal = nb * vc;
-    return `<tr><td>${ah} Ah</td><td class="c">${vc}</td><td class="r"><strong>${nb}</strong></td><td class="r">${nbTotal}</td><td class="r">${f0(ah*vc*nb*12)} Wh</td></tr>`;
+    const energiaWh = ah*vc*nb*12;
+    return {ah, vc, nb, nbTotal, energiaWh};
+  });
+  // La opción "más eficiente" por defecto: menor cantidad total de baterías
+  // (y, en empate, menor energía instalada de más).
+  let bestOpt = batOptions[0];
+  batOptions.forEach(o=>{
+    if(o.nbTotal < bestOpt.nbTotal || (o.nbTotal===bestOpt.nbTotal && o.energiaWh < bestOpt.energiaWh)) bestOpt = o;
+  });
+  // Si el usuario ya eligió una capacidad manualmente y sigue siendo válida, se respeta.
+  const chosenAh  = (selectedBatAh!==null && batAhs.includes(selectedBatAh)) ? selectedBatAh : bestOpt.ah;
+  const chosenOpt = batOptions.find(o=>o.ah===chosenAh) || bestOpt;
+  window.__batChosen = chosenOpt; // usado por el resumen final
+
+  const batRows = batOptions.map(o=>{
+    const sel = o.ah===chosenAh ? ' row-selected' : '';
+    const tag = o.ah===bestOpt.ah ? ' <span class="auto-badge">recomendado</span>' : '';
+    return `<tr class="${sel.trim()}" onclick="selectBatRow(${o.ah})"><td>${o.ah} Ah${tag}</td><td class="c">${o.vc}</td><td class="r"><strong>${o.nb}</strong></td><td class="r">${o.nbTotal}</td><td class="r">${f0(o.energiaWh)} Wh</td></tr>`;
   }).join('');
 
   document.getElementById('bat-results').innerHTML = `
@@ -1374,7 +1617,7 @@ function calcAll(){
       <div class="stat green"><div class="stat-label">Ah necesarios</div><div class="stat-val">${f1(ahNec)}</div><div class="stat-unit">Ah base</div></div>
       <div class="stat amber"><div class="stat-label">Ah corregidos / DOD</div><div class="stat-val">${f1(ahReal)}</div><div class="stat-unit">Ah reales a instalar</div></div>
     </div>
-    <div class="card-title" style="margin-bottom:8px"><span>📊</span> N° baterías según capacidad (${batTipo.toUpperCase()} ${batV}V)</div>
+    <div class="card-title" style="margin-bottom:8px"><span>📊</span> N° baterías según capacidad (${batTipo.toUpperCase()} ${batV}V) — clic en una fila para elegirla</div>
     <div class="tbl-wrap"><table>
       <thead><tr><th>Capacidad</th><th class="c">En serie (${batV}V)</th><th class="r">Strings paralelo</th><th class="r">Total baterías</th><th class="r">Energía banco</th></tr></thead>
       <tbody>${batRows}</tbody>
@@ -1385,7 +1628,8 @@ function calcAll(){
 \n<div class="f-step">2. Ah base:</div>  ${f0(consBat)} Wh ÷ ${batV} V = <span class="f-res">${f1(ahNec)} Ah</span>
 \n<div class="f-step">3. Corrección DOD (${batTipo}):</div>  ${f1(ahNec)} Ah ÷ ${batDOD} DOD = <span class="f-res">${f1(ahReal)} Ah reales</span>
 \n<div class="f-step">4. Baterías en serie:</div>  ${batV}V sistema ÷ 12V batería = <span class="f-res">${batV/12} en serie por string</span>
-\n<div class="f-step">5. Strings en paralelo:</div>  Ah reales ÷ capacidad batería = N° strings → Multiplicar por baterías en serie`;
+\n<div class="f-step">5. Strings en paralelo:</div>  Ah reales ÷ capacidad batería = N° strings → Multiplicar por baterías en serie
+\n<div class="f-step">6. Capacidad elegida:</div>  ${chosenOpt.ah} Ah × ${chosenOpt.nbTotal} unidades = <span class="f-res">${f0(chosenOpt.energiaWh)} Wh de banco</span>`;
 
   // PROTECCIONES Y CABLES
   const breakerDC  = nextBreakerUp(iscFS);
@@ -1426,12 +1670,12 @@ function calcAll(){
     </div>
     <div class="card-title"><span>🔌</span> Cables recomendados</div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Circuito</th><th>Corriente de diseño</th><th>Sección Europeo</th><th>Calibre AWG</th><th>Notas</th></tr></thead>
+      <thead><tr><th>Circuito</th><th>Corriente de diseño</th><th>Sección (mm²)</th><th>Notas</th></tr></thead>
       <tbody>
-        <tr><td>DC Paneles → Inversor</td><td>${f2(iscFS)} A</td><td><strong>${cDC.eu} mm²</strong></td><td><strong>AWG ${cDC.awg}</strong></td><td>Cable solar (UV, temperatura)</td></tr>
-        <tr><td>DC Baterías → Inversor</td><td>${f2(batProt)} A</td><td><strong>${cBat.eu} mm²</strong></td><td><strong>AWG ${cBat.awg}</strong></td><td>Cable flexible, corto recorrido</td></tr>
-        <tr><td>AC Inversor → Cargas</td><td>${f2(acProt)} A</td><td><strong>${cAC.eu} mm²</strong></td><td><strong>AWG ${cAC.awg}</strong></td><td>Cable THHN o libre de halógenos</td></tr>
-        <tr><td>Tierra de protección</td><td>—</td><td><strong>2.5–6 mm²</strong></td><td><strong>AWG 12–10</strong></td><td>Verde-amarillo, mínimo 2.5 mm²</td></tr>
+        <tr><td>DC Paneles → Inversor</td><td>${f2(iscFS)} A</td><td><strong>${cDC.eu} mm²</strong></td><td>Cable solar (UV, temperatura)</td></tr>
+        <tr><td>DC Baterías → Inversor</td><td>${f2(batProt)} A</td><td><strong>${cBat.eu} mm²</strong></td><td>Cable flexible, corto recorrido</td></tr>
+        <tr><td>AC Inversor → Cargas</td><td>${f2(acProt)} A</td><td><strong>${cAC.eu} mm²</strong></td><td>Cable THHN o libre de halógenos</td></tr>
+        <tr><td>Tierra de protección</td><td>—</td><td><strong>2.5–6 mm²</strong></td><td>Verde-amarillo, mínimo 2.5 mm²</td></tr>
       </tbody>
     </table></div>
     <div class="card-title" style="margin-top:16px"><span>📋</span> Tabla de capacidades de cable de referencia</div>
@@ -1457,9 +1701,9 @@ function calcAll(){
     <div class="g2">
       <div>
         <div class="breakdown">
-          <div class="breakdown-row"><span>☀️ Paneles requeridos</span><span>${nPanelR} × ${panWp}Wp</span></div>
-          <div class="breakdown-row"><span>⚡ Inversor mínimo</span><span>${f0(invSug)} W</span></div>
-          <div class="breakdown-row"><span>🔋 Baterías (200Ah GEL)</span><span>${Math.ceil(ahReal/200) * (vbat/12)} und</span></div>
+          <div class="breakdown-row"><span>☀️ Paneles requeridos</span><span>${nPanelR} × ${panWp}Wp${autoPanel?' <span class="auto-badge">auto</span>':' <span class="manual-badge">manual</span>'}</span></div>
+          <div class="breakdown-row"><span>⚡ Inversor mínimo</span><span>${f0(invSug)} W${autoInv?' <span class="auto-badge">auto</span>':' <span class="manual-badge">manual</span>'}</span></div>
+          <div class="breakdown-row"><span>🔋 Baterías (${chosenOpt.ah}Ah ${batTipo.toUpperCase()})</span><span>${chosenOpt.nbTotal} und</span></div>
           <div class="breakdown-row"><span>🔌 Breaker DC</span><span>${breakerDC} A</span></div>
           <div class="breakdown-row"><span>⚡ DPS DC</span><span>${dpsDC} V</span></div>
           <div class="breakdown-row"><span>🔌 Breaker Baterías</span><span>${breakerBat} A</span></div>
@@ -1525,6 +1769,64 @@ function calcDesdeRecibo(){
   `;
 }
 
+function applyPanelToFields(p){
+  document.getElementById('panel-sel').value   = p.id;
+  document.getElementById('pan-wp').value      = p.wp;
+  document.getElementById('pan-isc').value     = p.isc;
+  document.getElementById('pan-voc').value     = p.voc;
+  document.getElementById('pan-vmpp').value    = p.vmpp;
+  document.getElementById('badge-panel').textContent = p.marca + ' ' + p.modelo;
+}
+function applyInvToFields(i){
+  document.getElementById('inv-sel').value  = i.id;
+  document.getElementById('inv-pot').value  = i.pot;
+  document.getElementById('inv-tipo').value = i.tipo;
+  if(i.vbat!=='none') document.getElementById('inv-vbat').value = i.vbat;
+  document.getElementById('badge-inv').textContent = i.marca + ' ' + i.modelo;
+}
+
+// Elige el panel cuya cantidad necesaria (redondeada hacia arriba) produzca la potencia
+// instalada MÁS CERCANA al pico requerido (menor desperdicio de Wp).
+function autoSelectPanel(ppico){
+  if(!DB.paneles.length) return null;
+  let best=null, bestWaste=Infinity, bestCount=Infinity;
+  DB.paneles.forEach(p=>{
+    if(p.wp<=0) return;
+    const cnt   = Math.max(1, Math.ceil(ppico / p.wp));
+    const total = cnt * p.wp;
+    const waste = total - ppico;
+    if(waste < bestWaste - 0.001 || (Math.abs(waste-bestWaste)<0.001 && cnt<bestCount)){
+      best=p; bestWaste=waste; bestCount=cnt;
+    }
+  });
+  return best;
+}
+
+// Elige el inversor de menor potencia comercial que cubra la potencia requerida,
+// respetando (si es posible) el tipo seleccionado y el voltaje de batería actual.
+function autoSelectInv(potFSW, tipoPref, vbatPref){
+  if(!DB.inversores.length) return null;
+  const candidates = DB.inversores.filter(i=>i.pot>=potFSW);
+  const pool = candidates.length ? candidates : DB.inversores;
+  let scored = pool.map(i=>{
+    let score = i.pot; // preferir menor potencia suficiente
+    if(tipoPref && i.tipo===tipoPref) score -= 100000;       // fuerte preferencia por mismo tipo
+    if(vbatPref && i.vbat===vbatPref) score -= 1000;         // preferencia por mismo voltaje de batería
+    return {i, score};
+  });
+  scored.sort((a,b)=>a.score-b.score);
+  return scored[0].i;
+}
+
+function toggleAutoPanel(){
+  autoPanel = document.getElementById('panel-auto').checked;
+  calcAll();
+}
+function toggleAutoInv(){
+  autoInv = document.getElementById('inv-auto').checked;
+  calcAll();
+}
+
 /* ══════════════════════════════════════════════════════
    SELECTS DE CATÁLOGOS
 ══════════════════════════════════════════════════════ */
@@ -1541,24 +1843,24 @@ function populateSelects(){
 }
 
 function onPanelChange(){
+  // Selección manual del usuario: desactiva el modo automático.
   const id = document.getElementById('panel-sel').value;
+  if(!id) return;
   const p  = DB.paneles.find(x=>x.id===id);
   if(!p) return;
-  document.getElementById('pan-wp').value   = p.wp;
-  document.getElementById('pan-isc').value  = p.isc;
-  document.getElementById('pan-voc').value  = p.voc;
-  document.getElementById('pan-vmpp').value = p.vmpp;
-  document.getElementById('badge-panel').textContent = p.marca + ' ' + p.modelo;
+  autoPanel = false;
+  document.getElementById('panel-auto').checked = false;
+  applyPanelToFields(p);
   calcAll();
 }
 function onInvChange(){
   const id = document.getElementById('inv-sel').value;
+  if(!id) return;
   const i  = DB.inversores.find(x=>x.id===id);
   if(!i) return;
-  document.getElementById('inv-pot').value  = i.pot;
-  document.getElementById('inv-tipo').value = i.tipo;
-  if(i.vbat!=='none') document.getElementById('inv-vbat').value = i.vbat;
-  document.getElementById('badge-inv').textContent = i.marca + ' ' + i.modelo;
+  autoInv = false;
+  document.getElementById('inv-auto').checked = false;
+  applyInvToFields(i);
   calcAll();
 }
 function onBatChange(){
@@ -1567,6 +1869,10 @@ function onBatChange(){
   if(!b) return;
   const tipMap = {gel:'gel',agm:'agm',litio:'litio',plomo:'gel'};
   document.getElementById('bat-tipo').value = tipMap[b.tipo]||'gel';
+  calcAll();
+}
+function selectBatRow(ah){
+  selectedBatAh = ah;
   calcAll();
 }
 
