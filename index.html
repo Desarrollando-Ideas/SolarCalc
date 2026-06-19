@@ -786,11 +786,15 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             </div>
             <div class="field">
               <label>Voltaje batería (V)</label>
-              <select id="inv-vbat" onchange="calcAll()">
+              <select id="inv-vbat" onchange="toggleAutoVbat(false)">
                 <option value="12">12 V (0–2 kW)</option>
                 <option value="24">24 V (2–4 kW)</option>
                 <option value="48" selected>48 V (4+ kW)</option>
               </select>
+              <label class="auto-toggle">
+                <input type="checkbox" id="vbat-auto" checked onchange="toggleAutoVbat(this.checked)">
+                🤖 Recomendar automáticamente según el consumo Wh/día (regla práctica: 0–2000→12V · 2000–4000→24V · 4000+→48V)
+              </label>
             </div>
           </div>
         </div>
@@ -1372,6 +1376,7 @@ let calcMode     = 'manual';
 // Auto-recomendación y selección manual de baterías
 let autoPanel      = true;   // si true, el panel se elige solo del catálogo
 let autoInv        = true;   // si true, el inversor se elige solo del catálogo
+let autoVbat       = true;   // si true, el voltaje de batería se recomienda solo según potencia
 let selectedBatAh  = null;   // capacidad (Ah) elegida manualmente en la tabla de baterías; null = automático (la más eficiente)
 
 /* ══════════════════════════════════════════════════════
@@ -1527,6 +1532,13 @@ function calcAll(){
   document.getElementById('t-potins').textContent     = f0(totPotSurge)  + ' W';
   document.getElementById('t-consumo-fs').textContent = f0(consFSWh)+ ' Wh/día';
   document.getElementById('t-potins-fs').textContent  = f0(potFSW)  + ' W';
+
+  // VOLTAJE DE BATERÍA AUTOMÁTICO (regla práctica de campo: según consumo Wh/día, SIN factor de seguridad)
+  if(autoVbat){
+    const vbatSel = document.getElementById('inv-vbat');
+    const vbatRec = totCons < 2000 ? 12 : (totCons < 4000 ? 24 : 48);
+    if(+vbatSel.value !== vbatRec) vbatSel.value = vbatRec;
+  }
 
   // STATS CONSUMO
   document.getElementById('consumo-stats').innerHTML = `
@@ -1692,7 +1704,7 @@ function calcAll(){
   document.getElementById('bat-results').innerHTML = `
     <div class="g4" style="margin-bottom:12px">
       <div class="stat"><div class="stat-label">Consumo a cubrir</div><div class="stat-val">${f0(consBat)}</div><div class="stat-unit">Wh (${batDias} día/s)</div></div>
-      <div class="stat"><div class="stat-label">Tensión sistema</div><div class="stat-val">${batV}</div><div class="stat-unit">V — DOD ${batDOD*100}%</div></div>
+      <div class="stat"><div class="stat-label">Tensión sistema</div><div class="stat-val">${batV}</div><div class="stat-unit">V — DOD ${batDOD*100}%${autoVbat?' · <span class="auto-badge">auto</span>':' · <span class="manual-badge">manual</span>'}</div></div>
       <div class="stat green"><div class="stat-label">Ah necesarios</div><div class="stat-val">${f1(ahNec)}</div><div class="stat-unit">Ah base</div></div>
       <div class="stat amber"><div class="stat-label">Ah corregidos / DOD</div><div class="stat-val">${f1(ahReal)}</div><div class="stat-unit">Ah reales a instalar</div></div>
     </div>
@@ -1906,6 +1918,14 @@ function toggleAutoPanel(){
 }
 function toggleAutoInv(){
   autoInv = document.getElementById('inv-auto').checked;
+  calcAll();
+}
+function toggleAutoVbat(checked){
+  // checked llega del checkbox; si viene de elegir el <select> a mano, se pasa false explícito
+  if(typeof checked === 'boolean'){
+    autoVbat = checked;
+    document.getElementById('vbat-auto').checked = checked;
+  }
   calcAll();
 }
 
