@@ -594,7 +594,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
           <input type="number" id="p-lat" value="7.9" step="0.01" oninput="calcAll()">
         </div>
         <div class="field">
-          <label>HSP (h pico/día) <span class="tip" data-tip="Horas de Sol Pico del sitio. Norte de Colombia: 4.0–5.5. Consulta IDEAM para tu ciudad.">?</span></label>
+          <label>HSP (h pico/día) <span class="tip" data-tip="Horas de Sol Pico del sitio. Norte de Colombia: 4.0–5.5. Lo ideal es usar el mes más desfavorable (peor irradiación del año), tomado de PVGIS.">?</span></label>
           <input type="number" id="p-hsp" value="4.5" step="0.1" oninput="calcAll()">
         </div>
         <div class="field">
@@ -602,6 +602,32 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
           <input type="number" id="p-fs" value="1.25" step="0.05" oninput="calcAll()">
         </div>
       </div>
+
+      <div class="card-sm" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-top:6px">
+        <div class="card-title" style="margin-bottom:8px"><span>🛰️</span> HSP real desde PVGIS (recomendado)</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5">
+          Para un cálculo más preciso, no uses un HSP genérico: usa el dato del <strong>mes más desfavorable</strong> (el de menor irradiación del año en tu sitio). Así el sistema queda dimensionado incluso para el peor mes, no solo para el promedio.
+          <br><br>
+          1. Abre <a href="https://re.jrc.ec.europa.eu/pvg_tools/es/" target="_blank" rel="noopener" style="color:var(--green)">PVGIS — Sistemas fotovoltaicos en cuadrícula</a> y ubica tu sitio en el mapa.<br>
+          2. Revisa la <strong>irradiación mensual (kWh/m²)</strong> y toma el valor del mes más bajo (ej. en Cúcuta suele ser junio).<br>
+          3. Ingresa ese valor abajo junto con los días de ese mes.
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Irradiación mes más bajo (kWh/m²/mes)</label>
+            <input type="number" id="pvgis-irrad" placeholder="Ej: 130.64" step="0.01">
+          </div>
+          <div class="field">
+            <label>Días del mes</label>
+            <input type="number" id="pvgis-dias" value="30" step="1">
+          </div>
+          <div class="field" style="flex:0 0 auto;align-self:flex-end">
+            <button class="btn btn-primary" onclick="calcHSPdesdePVGIS()">Calcular HSP →</button>
+          </div>
+        </div>
+        <div id="pvgis-result" style="font-size:12px;color:var(--text2);margin-top:6px"></div>
+      </div>
+
       <div class="g3" style="margin-top:10px">
         <div class="stat green" style="grid-column:span 1">
           <div class="stat-label">Inclinación óptima de paneles</div>
@@ -625,7 +651,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
       </div>
       <div class="alert alert-info" style="margin-bottom:12px">
         <span class="alert-icon">💡</span>
-        <div>Ingresa cada carga eléctrica. <strong>Consumo = Cantidad × Potencia × Horas/día</strong>. La potencia instalada = Cantidad × Potencia (para el inversor).</div>
+        <div>Ingresa cada carga eléctrica. <strong>Consumo = Cantidad × Potencia × Horas/día</strong>. La potencia instalada = Cantidad × Potencia (para el inversor). Activa <strong>⚡ ×4</strong> en motores o electrodomésticos de arranque pesado (nevera, lavadora, licuadora, bomba, A/C) para que el inversor se dimensione con el pico de arranque, no solo la potencia nominal.</div>
       </div>
       <div class="tbl-wrap">
         <table>
@@ -638,6 +664,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
               <th>Horas/día</th>
               <th>Consumo Wh/día</th>
               <th>Pot. Instalada W</th>
+              <th>Arranque <span class="tip" data-tip="Activa esto para motores o electrodomésticos con arranque pesado (lavadora, nevera, licuadora, bomba de agua, A/C). Multiplica la potencia instalada de esa carga ×4 para dimensionar bien el inversor, sin afectar el consumo Wh/día.">?</span></th>
               <th></th>
             </tr>
           </thead>
@@ -648,11 +675,13 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
               <td class="r" id="t-consumo">—</td>
               <td class="r" id="t-potins">—</td>
               <td></td>
+              <td></td>
             </tr>
             <tr class="tr-fs">
               <td colspan="5" style="text-align:right;padding-right:12px">× <span id="lbl-fs">1.25</span> Factor de Seguridad</td>
               <td class="r" id="t-consumo-fs">—</td>
               <td class="r" id="t-potins-fs">—</td>
+              <td></td>
               <td></td>
             </tr>
           </tfoot>
@@ -1418,38 +1447,60 @@ function setMode(m){
 }
 
 /* ══════════════════════════════════════════════════════
+   HSP DESDE PVGIS (mes más desfavorable)
+══════════════════════════════════════════════════════ */
+function calcHSPdesdePVGIS(){
+  const irrad = +document.getElementById('pvgis-irrad').value;
+  const dias  = +document.getElementById('pvgis-dias').value || 30;
+  const out   = document.getElementById('pvgis-result');
+  if(!irrad || irrad<=0){
+    out.innerHTML = '⚠️ Ingresa el valor de irradiación del mes más bajo (lo sacas de la gráfica mensual de PVGIS).';
+    return;
+  }
+  const hsp = irrad / dias;
+  document.getElementById('p-hsp').value = Math.round(hsp*100)/100;
+  out.innerHTML = `✅ HSP calculado: <strong>${irrad} ÷ ${dias} = ${(Math.round(hsp*100)/100)} h pico/día</strong> — ya se cargó en el campo HSP. El sistema quedará dimensionado para el mes más desfavorable.`;
+  calcAll();
+}
+
+/* ══════════════════════════════════════════════════════
    TABLA DE CARGAS
 ══════════════════════════════════════════════════════ */
 function renderCargas(){
   const tb = document.getElementById('cargas-tbody');
-  tb.innerHTML = cargas.map((c,i)=>`
-    <tr>
+  tb.innerHTML = cargas.map((c,i)=>{
+    const surge   = !!c.surge;
+    const potIns  = c.qty*c.pot*(surge?4:1);
+    const rowStyle= surge ? 'background:var(--amber-dim)' : '';
+    return `
+    <tr style="${rowStyle}">
       <td>${i+1}</td>
-      <td><input type="text" style="width:150px" value="${c.desc.replace(/"/g,'&quot;')}" onchange="cargas[${i}].desc=this.value;calcAll()"></td>
-      <td class="c"><input type="number" class="w60" value="${c.qty}" min="1" onchange="cargas[${i}].qty=+this.value||1;calcAll()"></td>
-      <td class="r"><input type="number" class="w80" value="${c.pot}" min="0" step="1" onchange="cargas[${i}].pot=+this.value||0;calcAll()"></td>
-      <td class="c"><input type="number" class="w60" value="${c.hrs}" min="0" step="0.25" onchange="cargas[${i}].hrs=+this.value||0;calcAll()"></td>
+      <td><input type="text" style="width:150px" value="${c.desc.replace(/"/g,'&quot;')}" onchange="cargas[${i}].desc=this.value;renderCargas()"></td>
+      <td class="c"><input type="number" class="w60" value="${c.qty}" min="1" onchange="cargas[${i}].qty=+this.value||1;renderCargas()"></td>
+      <td class="r"><input type="number" class="w80" value="${c.pot}" min="0" step="1" onchange="cargas[${i}].pot=+this.value||0;renderCargas()"></td>
+      <td class="c"><input type="number" class="w60" value="${c.hrs}" min="0" step="0.25" onchange="cargas[${i}].hrs=+this.value||0;renderCargas()"></td>
       <td class="r"><strong>${f0(c.qty*c.pot*c.hrs)}</strong></td>
-      <td class="r">${f0(c.qty*c.pot)}</td>
+      <td class="r" style="${surge?'color:var(--amber);font-weight:700':''}">${f0(potIns)}${surge?' <span style="font-size:9px">(×4)</span>':''}</td>
+      <td class="c"><button class="btn btn-sm ${surge?'':'btn-secondary'}" style="${surge?'background:var(--amber);color:#fff':''}" title="Marca esta carga como motor/electrodoméstico de arranque pesado (×4 potencia instalada)" onclick="cargas[${i}].surge=!cargas[${i}].surge;renderCargas()">⚡ ×4</button></td>
       <td><button class="del" onclick="confirmDelete('¿Eliminar la carga «${c.desc}»?',()=>{cargas.splice(${i},1);renderCargas();calcAll()})">✕</button></td>
     </tr>
-  `).join('');
+  `;}).join('');
   document.getElementById('badge-cargas').textContent = cargas.length + ' cargas';
   calcAll();
 }
 
 function addCarga(){
-  cargas.push({desc:'Nueva carga', qty:1, pot:100, hrs:4});
+  cargas.push({desc:'Nueva carga', qty:1, pot:100, hrs:4, surge:false});
   renderCargas();
 }
 function resetCalc(){
   if(!confirm('¿Limpiar todas las cargas y volver a los valores de ejemplo?')) return;
   cargas=[
-    {desc:'Luces LED',qty:15,pot:15,hrs:6},
-    {desc:'Televisores',qty:4,pot:80,hrs:4},
-    {desc:'Cargador celulares',qty:3,pot:45,hrs:1},
-    {desc:'Nevera 220L',qty:1,pot:250,hrs:10},
-    {desc:'Lavadora',qty:1,pot:525,hrs:2},
+    {desc:'Luces LED',qty:15,pot:15,hrs:6,surge:false},
+    {desc:'Televisores',qty:4,pot:80,hrs:4,surge:false},
+    {desc:'Cargador celulares',qty:3,pot:45,hrs:1,surge:false},
+    {desc:'Nevera 220L',qty:1,pot:250,hrs:10,surge:true},
+    {desc:'Lavadora',qty:1,pot:525,hrs:2,surge:true},
   ];
   renderCargas();
 }
@@ -1463,13 +1514,17 @@ function calcAll(){
   document.getElementById('lbl-fs').textContent = fs;
 
   // TOTALES DE CARGA
-  let totCons = 0, totPot = 0;
-  cargas.forEach(c => { totCons += c.qty*c.pot*c.hrs; totPot += c.qty*c.pot; });
+  let totCons = 0, totPot = 0, totPotSurge = 0;
+  cargas.forEach(c => {
+    totCons += c.qty*c.pot*c.hrs;
+    totPot  += c.qty*c.pot;
+    totPotSurge += c.qty*c.pot*(c.surge?4:1);
+  });
   const consFSWh  = totCons * fs;
-  const potFSW    = totPot  * fs;
+  const potFSW    = totPotSurge * fs;
 
   document.getElementById('t-consumo').textContent    = f0(totCons) + ' Wh/día';
-  document.getElementById('t-potins').textContent     = f0(totPot)  + ' W';
+  document.getElementById('t-potins').textContent     = f0(totPotSurge)  + ' W';
   document.getElementById('t-consumo-fs').textContent = f0(consFSWh)+ ' Wh/día';
   document.getElementById('t-potins-fs').textContent  = f0(potFSW)  + ' W';
 
@@ -1496,8 +1551,8 @@ function calcAll(){
     <div class="stat blue">
       <div class="stat-label">Pot. instalada + F.S.</div>
       <div class="stat-val">${f0(potFSW)}</div>
-      <div class="stat-unit">W → mínimo inversor</div>
-      <div class="stat-formula">${f0(totPot)} × ${fs}</div>
+      <div class="stat-unit">W → mínimo inversor${totPotSurge>totPot?' (incluye arranque ×4)':''}</div>
+      <div class="stat-formula">${f0(totPotSurge)} × ${fs}</div>
     </div>
   `;
 
@@ -1596,7 +1651,7 @@ function calcAll(){
     ${!invOk?`<div class="alert alert-warn" style="margin-top:8px"><span class="alert-icon">⚠️</span>El inversor seleccionado (${f0(invPot)}W) es menor que la potencia requerida (${f0(potFSW)}W). Selecciona uno mayor.</div>`:''}
   `;
   document.getElementById('inv-formula').innerHTML = `
-    <div class="f-step">Potencia instalada:</div>  ${f0(totPot)} W × ${fs} F.S. = <span class="f-res">${f0(potFSW)} W</span>
+    <div class="f-step">Potencia instalada (con arranque):</div>  ${f0(totPotSurge)} W × ${fs} F.S. = <span class="f-res">${f0(potFSW)} W</span>
 \n<div class="f-step">Inversor comercial mínimo:</div>  Siguiente potencia comercial ≥ ${f0(potFSW)}W = <span class="f-res">${f0(invSug)} W</span>
 \n<div class="f-step">Protección baterías (DC):</div>  ${f0(potFSW)} W ÷ ${vbat} V = ${f2(batProt)} A → Breaker <span class="f-res">${nextBreakerDown(batProt)} A ↓ (por debajo)</span>
 \n<div class="f-step">Protección inversor (AC):</div>  ${f0(potFSW)} W ÷ 120 V = ${f2(acProt)} A → Breaker <span class="f-res">${nextBreakerDown(acProt)} A ↓ (por debajo)</span>`;
