@@ -607,7 +607,13 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
           <div class="stat-label">Inclinación óptima de paneles</div>
           <div class="stat-val" id="tilt-val">—</div>
           <div class="stat-unit">grados, fijo todo el año</div>
-          <div class="stat-formula" id="tilt-formula">Ángulo ≈ |Latitud|</div>
+          <div class="stat-formula" id="tilt-formula">Ángulo = 3.7 + 0.69×|Latitud|</div>
+        </div>
+        <div class="stat blue" style="grid-column:span 1">
+          <div class="stat-label">Orientación del panel</div>
+          <div class="stat-val" id="orient-val" style="font-size:18px">—</div>
+          <div class="stat-unit">hacia donde debe mirar la cara del panel</div>
+          <div class="stat-formula" id="orient-formula">Hemisferio Norte → Sur · Hemisferio Sur → Norte</div>
         </div>
       </div>
     </div>
@@ -1495,13 +1501,31 @@ function calcAll(){
     </div>
   `;
 
-  // ÁNGULO ÓPTIMO DE INCLINACIÓN (regla práctica: inclinación fija ≈ latitud del sitio)
+  // ÁNGULO ÓPTIMO DE INCLINACIÓN (fórmula empírica para inclinación fija anual)
   const lat      = +document.getElementById('p-lat').value || 0;
-  const tiltOpt  = Math.round(Math.abs(lat)*10)/10;
+  const tiltOpt  = Math.round((3.7 + 0.69*Math.abs(lat))*10)/10;
   const tiltEl   = document.getElementById('tilt-val');
   if(tiltEl){
     document.getElementById('tilt-val').textContent = tiltOpt + '°';
-    document.getElementById('tilt-formula').textContent = `Inclinación ≈ |Latitud| = |${lat}°| = ${tiltOpt}° (orientado hacia el ecuador)`;
+    document.getElementById('tilt-formula').textContent = `3.7 + 0.69×|${lat}°| = ${tiltOpt}°`;
+  }
+
+  // ORIENTACIÓN — depende del hemisferio: el panel debe mirar hacia el ecuador
+  const orientEl = document.getElementById('orient-val');
+  if(orientEl){
+    let orientTxt, orientNote;
+    if(lat > 0){
+      orientTxt  = '☀️ SUR';
+      orientNote = `Hemisferio Norte (lat ${lat}° > 0) → cara del panel hacia el SUR`;
+    } else if(lat < 0){
+      orientTxt  = '☀️ NORTE';
+      orientNote = `Hemisferio Sur (lat ${lat}° < 0) → cara del panel hacia el NORTE`;
+    } else {
+      orientTxt  = 'SUR o NORTE';
+      orientNote = `Latitud ≈ 0° (ecuador) → orientación Norte-Sur poco crítica`;
+    }
+    document.getElementById('orient-val').textContent = orientTxt;
+    document.getElementById('orient-formula').textContent = orientNote;
   }
 
   // PANELES — potencia pico requerida (se calcula antes para poder recomendar el panel óptimo)
@@ -1670,14 +1694,17 @@ function calcAll(){
     </div>
     <div class="card-title"><span>🔌</span> Cables recomendados</div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Circuito</th><th>Corriente de diseño</th><th>Sección (mm²)</th><th>Notas</th></tr></thead>
+      <thead><tr><th>Circuito</th><th>Corriente de diseño</th><th>Estándar</th><th>Calibre</th><th>Notas</th></tr></thead>
       <tbody>
-        <tr><td>DC Paneles → Inversor</td><td>${f2(iscFS)} A</td><td><strong>${cDC.eu} mm²</strong></td><td>Cable solar (UV, temperatura)</td></tr>
-        <tr><td>DC Baterías → Inversor</td><td>${f2(batProt)} A</td><td><strong>${cBat.eu} mm²</strong></td><td>Cable flexible, corto recorrido</td></tr>
-        <tr><td>AC Inversor → Cargas</td><td>${f2(acProt)} A</td><td><strong>${cAC.eu} mm²</strong></td><td>Cable THHN o libre de halógenos</td></tr>
-        <tr><td>Tierra de protección</td><td>—</td><td><strong>2.5–6 mm²</strong></td><td>Verde-amarillo, mínimo 2.5 mm²</td></tr>
+        <tr><td>DC Paneles → Inversor</td><td>${f2(iscFS)} A</td><td>mm² (IEC)</td><td><strong>${cDC.eu} mm²</strong></td><td>Cable solar (UV, temperatura)</td></tr>
+        <tr><td>DC Baterías → Inversor</td><td>${f2(batProt)} A</td><td>AWG</td><td><strong>AWG ${cBat.awg}</strong></td><td>Cable flexible, corto recorrido, alta corriente</td></tr>
+        <tr><td>AC Inversor → Cargas</td><td>${f2(acProt)} A</td><td>AWG</td><td><strong>AWG ${cAC.awg}</strong></td><td>Cable THHN o libre de halógenos</td></tr>
+        <tr><td>Tierra de protección</td><td>—</td><td>mm²</td><td><strong>2.5–6 mm²</strong></td><td>Verde-amarillo, mínimo 2.5 mm²</td></tr>
       </tbody>
     </table></div>
+    <div style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.5">
+      📌 <strong>Convención usada:</strong> el cableado <strong>DC de paneles</strong> se especifica en <strong>mm²</strong> (estándar IEC, como vienen los cables solares). El cableado de <strong>baterías</strong> y el de <strong>salida AC</strong> se especifica en <strong>AWG</strong> (estándar usado por inversores, breakers y cable de cobre flexible para banco de baterías).
+    </div>
     <div class="card-title" style="margin-top:16px"><span>📋</span> Tabla de capacidades de cable de referencia</div>
     <div class="tbl-wrap"><table>
       <thead><tr><th>Cap. máx (A)</th><th>Europeo (mm²)</th><th>AWG</th><th>Aplicación típica</th></tr></thead>
@@ -2300,14 +2327,14 @@ const KB = [
     k:['cable','conductor','calibre','mm','awg','seccion'],
     r:`**Cables en sistemas FV:**
 
-**DC Paneles → Inversor:** Usa cable solar certificado (doble aislamiento, UV, temperatura). Calibre según corriente ISC × F.S.:
-- Hasta 20A → 2.5 mm² (AWG 12)
-- Hasta 30A → 4 mm² (AWG 10)
-- Hasta 55A → 10 mm² (AWG 6)
+**DC Paneles → Inversor:** Usa cable solar certificado (doble aislamiento, UV, temperatura). Se especifica en **mm² (estándar IEC)**, según corriente ISC × F.S.:
+- Hasta 20A → 2.5 mm²
+- Hasta 30A → 4 mm²
+- Hasta 55A → 10 mm²
 
-**DC Baterías → Inversor:** Cable flexible, lo más corto posible. Mismo calibre que corriente (Pot+F.S./Vbat).
+**DC Baterías → Inversor:** Cable flexible, lo más corto posible. Se especifica en **AWG** (estándar de cable de cobre flexible para banco de baterías), según corriente (Pot+F.S./Vbat).
 
-**AC Inversor → Tablero:** Cable THHN o THW. Calibre según breaker AC.
+**AC Inversor → Tablero:** Cable THHN o THW, especificado en **AWG**, según el breaker AC.
 
 **Tierra:** Mínimo 2.5 mm² verde-amarillo. Conectar paneles, estructura, inversor y baterías.
 
