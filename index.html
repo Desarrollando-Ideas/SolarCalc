@@ -1875,7 +1875,8 @@ function applyInvToFields(i){
   document.getElementById('inv-sel').value  = i.id;
   document.getElementById('inv-pot').value  = i.pot;
   document.getElementById('inv-tipo').value = i.tipo;
-  if(i.vbat!=='none') document.getElementById('inv-vbat').value = i.vbat;
+  // El voltaje de batería lo decide la regla de consumo (autoVbat); el inversor del catálogo no debe pisarlo.
+  if(!autoVbat && i.vbat!=='none') document.getElementById('inv-vbat').value = i.vbat;
   document.getElementById('badge-inv').textContent = i.marca + ' ' + i.modelo;
 }
 
@@ -1962,6 +1963,10 @@ function onInvChange(){
   if(!i) return;
   autoInv = false;
   document.getElementById('inv-auto').checked = false;
+  // Selección manual de inversor: también fija el voltaje de batería a ese modelo
+  autoVbat = false;
+  document.getElementById('vbat-auto').checked = false;
+  if(i.vbat!=='none') document.getElementById('inv-vbat').value = i.vbat;
   applyInvToFields(i);
   calcAll();
 }
