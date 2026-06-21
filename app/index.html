@@ -247,8 +247,14 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 .tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--bg4);border:1px solid var(--border);color:var(--text3);font-size:9px;cursor:help;font-weight:700;margin-left:4px;position:relative}
 .tip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);color:var(--text);font-size:11px;padding:6px 10px;border-radius:6px;white-space:normal;max-width:250px;z-index:100;box-shadow:var(--shadow);font-weight:400}
 
-.auto-toggle{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--text2);font-weight:600;cursor:pointer;margin-bottom:12px;line-height:1.4}
-.auto-toggle input{width:auto;margin-top:2px;cursor:pointer}
+/* ── TOGGLE SWITCH visual ── */
+.auto-toggle{display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--text2);font-weight:600;cursor:pointer;margin-bottom:12px;line-height:1.4;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);transition:all .2s;user-select:none}
+.auto-toggle:has(input:checked){color:var(--accent);border-color:var(--accent);background:var(--accent-dim)}
+.auto-toggle input[type=checkbox]{display:none}
+.auto-toggle .toggle-track{flex-shrink:0;position:relative;width:34px;height:19px;background:var(--border2);border-radius:99px;transition:background .2s}
+.auto-toggle:has(input:checked) .toggle-track{background:var(--accent)}
+.auto-toggle .toggle-thumb{position:absolute;top:2.5px;left:2.5px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.auto-toggle:has(input:checked) .toggle-thumb{transform:translateX(15px)}
 
 .breakdown{background:var(--bg3);border-radius:var(--radius-sm);padding:12px 16px;margin-top:10px}
 .breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
@@ -611,6 +617,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             </select>
             <label class="auto-toggle">
               <input type="checkbox" id="panel-auto" checked onchange="toggleAutoPanel()">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
               🤖 Recomendación — elige el panel más práctico para el resultado
             </label>
           </div>
@@ -665,6 +672,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             </select>
             <label class="auto-toggle">
               <input type="checkbox" id="inv-auto" checked onchange="toggleAutoInv()">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
               🤖 Recomendación — elige el inversor más práctico para el resultado
             </label>
           </div>
@@ -696,6 +704,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
               </select>
               <label class="auto-toggle">
                 <input type="checkbox" id="vbat-auto" checked onchange="toggleAutoVbat(this.checked)">
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
                 🤖 Recomendación — según consumo Wh/día (0–2000→12V · 2000–4000→24V · 4000+→48V)
               </label>
             </div>
@@ -2173,75 +2182,61 @@ function calcAll(){
 }
 
 /* ══════════════════════════════════════════════════════
-   VISUALIZACIÓN DE ARREGLO — cadenas serie/paralelo
-   y validación de compatibilidad con el inversor
+   VISUALIZACIÓN INTERACTIVA DE ARREGLO — cadenas serie/paralelo
+   Paneles arrastrables, conexiones animadas, Wp visible
 ══════════════════════════════════════════════════════ */
+let _arrayDiagData = null; // cache para redibujar en resize
+
 function renderArrayDiagram(d){
   const el = document.getElementById('array-diagram');
   if(!el) return;
-  if(!d.nPanelR || d.nPanelR<=0){ el.innerHTML=''; return; }
+  if(!d.nPanelR || d.nPanelR<=0){ el.innerHTML=''; _arrayDiagData=null; return; }
+  _arrayDiagData = d;
 
   const rowsReal = Math.max(1, d.panPar||1);
   const colsReal = Math.max(1, d.panSer||1);
-  const rows = Math.min(rowsReal, 4);
-  const cols = Math.min(colsReal, 6);
+  const rows = Math.min(rowsReal, 5);
+  const cols = Math.min(colsReal, 7);
   const moreRows = rowsReal - rows;
   const moreCols = colsReal - cols;
 
-  const pw=42, ph=27, gx=16, gy=20;
-  const startX = 56, startY = 26;
-  const busX = startX + cols*(pw+gx) - gx + 30 + (moreCols>0?70:0);
-
-  let panels='', wires='', rowLabels='';
-  for(let r=0;r<rows;r++){
-    const y = startY + r*(ph+gy);
-    for(let c=0;c<cols;c++){
-      const x = startX + c*(pw+gx);
-      panels += `<rect x="${x}" y="${y}" width="${pw}" height="${ph}" rx="3" fill="var(--accent)" opacity=".88" stroke="var(--ink)" stroke-width=".6"/>
-        <line x1="${x+5}" y1="${y+ph/2}" x2="${x+pw-5}" y2="${y+ph/2}" stroke="#fff" stroke-width=".6" opacity=".5"/>
-        <line x1="${x+pw/2}" y1="${y+4}" x2="${x+pw/2}" y2="${y+ph-4}" stroke="#fff" stroke-width=".6" opacity=".5"/>`;
-      if(c<cols-1){
-        const wy=y+ph/2;
-        wires += `<line x1="${x+pw}" y1="${wy}" x2="${x+pw+gx}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
-      }
-    }
-    const lastX = startX + (cols-1)*(pw+gx) + pw;
-    const wy = y+ph/2;
-    const lineEndX = moreCols>0 ? lastX+58 : lastX;
-    if(moreCols>0){
-      wires += `<line x1="${lastX}" y1="${wy}" x2="${lastX+30}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4" stroke-dasharray="3,3"/>
-        <text x="${lastX+34}" y="${wy+4}" font-size="10.5" fill="var(--text2)">+${moreCols} más</text>`;
-    }
-    wires += `<line x1="${lineEndX}" y1="${wy}" x2="${busX}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
-    rowLabels += `<text x="${startX-8}" y="${wy+4}" font-size="10.5" fill="var(--text2)" text-anchor="end">S${r+1}</text>`;
-  }
-  if(moreRows>0){
-    const y = startY + rows*(ph+gy) - gy + 14;
-    rowLabels += `<text x="${startX}" y="${y}" font-size="11.5" fill="var(--text2)" font-style="italic">+ ${moreRows} string(s) más en paralelo →</text>`;
-  }
-
-  const busTop = startY + ph/2;
-  const busBottom = startY + (rows-1)*(ph+gy) + ph/2;
-  const invX = busX + 46, invY = (busTop+busBottom)/2 - 24, invW = 90, invH = 48;
-
   const vocOk  = (d.invVdc!=null) ? d.vocFS <= d.invVdc : null;
   const compatColor = vocOk===null ? 'var(--text2)' : (vocOk ? 'var(--green)' : 'var(--red)');
-  const compatBg     = vocOk===null ? 'var(--bg3)' : (vocOk ? 'var(--green-dim)' : 'var(--red-dim)');
+  const compatBg    = vocOk===null ? 'var(--bg3)'   : (vocOk ? 'var(--green-dim)' : 'var(--red-dim)');
 
-  const svgH = Math.max(140, startY + rows*(ph+gy) + (moreRows>0?26:0));
-  const svgW = invX + invW + 16;
+  // Construir la estructura de paneles como array plano para drag
+  // panelOrder[r] = array de cols de índices de posición
+  // Usamos un canvas-like div con posicionamiento absoluto + SVG de conexiones superpuesto
+
+  const PW=64, PH=42, GX=18, GY=22;
+  const LABEL_W=36, PAD=14;
+  const startX = LABEL_W + PAD;
+  const startY = PAD;
+  const totalColsW = cols*(PW+GX) - GX + (moreCols>0?70:0);
+  const BUS_X = startX + totalColsW + 30;
+  const INV_W=96, INV_H=56;
+  const svgW = BUS_X + INV_W + 24;
+  const svgH = Math.max(150, startY + rows*(PH+GY) + (moreRows>0?30:0) + PAD);
+
+  // Generar ID único para esta instancia
+  const uid = 'ad_' + Date.now();
 
   el.innerHTML = `
-    <div class="card-title" style="margin-bottom:6px"><span>📐</span> Visualización del arreglo (cadenas serie/paralelo)</div>
-    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);padding:8px">
-      <svg viewBox="0 0 ${svgW} ${svgH}" width="100%" style="min-width:480px;display:block">
-        ${panels}${wires}${rowLabels}
-        <line x1="${busX}" y1="${busTop}" x2="${busX}" y2="${busBottom}" stroke="var(--ink2)" stroke-width="1.6"/>
-        <line x1="${busX}" y1="${(busTop+busBottom)/2}" x2="${invX}" y2="${(busTop+busBottom)/2}" stroke="var(--ink2)" stroke-width="1.6"/>
-        <rect x="${invX}" y="${invY}" width="${invW}" height="${invH}" rx="6" fill="${vocOk===false?'var(--red-dim)':'var(--bg3)'}" stroke="${vocOk===false?'var(--red)':'var(--border2)'}" stroke-width="1.4"/>
-        <text x="${invX+invW/2}" y="${invY+20}" font-size="11.5" font-weight="700" fill="var(--text)" text-anchor="middle">Inversor</text>
-        <text x="${invX+invW/2}" y="${invY+34}" font-size="10" fill="var(--text2)" text-anchor="middle">${d.invPot?d.invPot+'W':'—'}</text>
-      </svg>
+    <div class="card-title" style="margin-bottom:8px"><span>📐</span> Visualización del arreglo (cadenas serie/paralelo)
+      <span style="font-size:10px;color:var(--text3);font-weight:400;margin-left:8px">— arrastra los paneles para reorganizar</span>
+    </div>
+    <div id="${uid}_wrap" style="position:relative;overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);padding:${PAD}px;min-height:${svgH}px">
+      <!-- SVG de conexiones (fondo) -->
+      <svg id="${uid}_svg" style="position:absolute;top:0;left:0;pointer-events:none;overflow:visible" width="${svgW}" height="${svgH}"></svg>
+      <!-- Paneles como divs arrastrables -->
+      <div id="${uid}_grid" style="position:relative;width:${svgW}px;height:${svgH}px">
+      </div>
+      <!-- Inversor estático (div) -->
+      <div id="${uid}_inv" style="position:absolute;border:2px solid ${vocOk===false?'var(--red)':'var(--border2)'};border-radius:8px;background:${vocOk===false?'var(--red-dim)':'var(--bg3)'};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:default;box-shadow:var(--shadow)">
+        <span style="font-size:18px">⚡</span>
+        <span style="font-size:11px;font-weight:700;color:var(--text)">Inversor</span>
+        <span style="font-size:10px;color:var(--text2)">${d.invPot?d.invPot+'W':'—'}</span>
+      </div>
     </div>
     <div class="g3" style="margin-top:10px;gap:8px">
       <div class="stat"><div class="stat-label">Total paneles</div><div class="stat-val">${d.nPanelR}</div><div class="stat-unit">${rowsReal} string(s) × ${colsReal} en serie</div></div>
@@ -2258,71 +2253,332 @@ function renderArrayDiagram(d){
     </div>
     ${(d.invMppt!=null && rowsReal>d.invMppt) ? `<div style="margin-top:6px;font-size:11.5px;color:var(--amber)">⚠️ Tienes ${rowsReal} string(s) en paralelo independientes y el inversor solo tiene ${d.invMppt} MPPT — varios strings deberán combinarse en el mismo MPPT (usa combiner box o verifica que sea compatible).</div>` : ''}
   `;
+
+  // ── Construir estado de paneles (orden por defecto: fila r, columna c)
+  // panelGrid[r][c] = {r,c,x,y,el}
+  const panelState = [];
+  for(let r=0;r<rows;r++){
+    panelState.push([]);
+    for(let c=0;c<cols;c++){
+      panelState[r].push({r,c});
+    }
+  }
+
+  const grid = document.getElementById(uid+'_grid');
+  const svg  = document.getElementById(uid+'_svg');
+  const invEl= document.getElementById(uid+'_inv');
+
+  // Posición del inversor
+  const invY0 = startY + (rows*(PH+GY)-GY)/2 - INV_H/2;
+  invEl.style.cssText += `;left:${BUS_X+16}px;top:${invY0}px;width:${INV_W}px;height:${INV_H}px;`;
+
+  // Crear panel divs
+  function makePanelEl(r, c){
+    const px = startX + c*(PW+GX);
+    const py = startY + r*(PH+GY);
+    const div = document.createElement('div');
+    div.dataset.r = r;
+    div.dataset.c = c;
+    div.style.cssText = `position:absolute;left:${px}px;top:${py}px;width:${PW}px;height:${PH}px;
+      border-radius:5px;background:var(--accent);cursor:grab;user-select:none;
+      border:1.5px solid rgba(0,0,0,.18);box-shadow:0 2px 6px rgba(0,0,0,.18);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      transition:box-shadow .15s,transform .15s;z-index:1;`;
+    // Líneas de celda decorativas (SVG inline pequeño)
+    div.innerHTML = `
+      <svg width="${PW-8}" height="${PH-10}" viewBox="0 0 ${PW-8} ${PH-10}" style="opacity:.55;pointer-events:none">
+        <line x1="0" y1="${(PH-10)/2}" x2="${PW-8}" y2="${(PH-10)/2}" stroke="#fff" stroke-width="1"/>
+        <line x1="${(PW-8)/3}" y1="0" x2="${(PW-8)/3}" y2="${PH-10}" stroke="#fff" stroke-width=".7"/>
+        <line x1="${2*(PW-8)/3}" y1="0" x2="${2*(PW-8)/3}" y2="${PH-10}" stroke="#fff" stroke-width=".7"/>
+      </svg>
+      <span style="position:absolute;bottom:2px;font-size:8px;color:rgba(255,255,255,.9);font-weight:700;letter-spacing:.2px">${d.panWp||''}Wp</span>`;
+    div.title = `Panel ${r+1}-${c+1} | ${d.panWp||'?'}Wp`;
+    return div;
+  }
+
+  const panelEls = [];
+  for(let r=0;r<rows;r++){
+    panelEls.push([]);
+    for(let c=0;c<cols;c++){
+      const div = makePanelEl(r,c);
+      grid.appendChild(div);
+      panelEls[r].push(div);
+    }
+  }
+
+  // Etiquetas de string y textos "más"
+  const labSvg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  labSvg.setAttribute('style','position:absolute;top:0;left:0;pointer-events:none;overflow:visible');
+  labSvg.setAttribute('width',svgW); labSvg.setAttribute('height',svgH);
+  for(let r=0;r<rows;r++){
+    const cy = startY + r*(PH+GY) + PH/2;
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x', startX-6); t.setAttribute('y', cy+4);
+    t.setAttribute('font-size','10'); t.setAttribute('fill','var(--text2)');
+    t.setAttribute('text-anchor','end'); t.textContent = `S${r+1}`;
+    labSvg.appendChild(t);
+  }
+  if(moreCols>0){
+    for(let r=0;r<rows;r++){
+      const cy = startY + r*(PH+GY) + PH/2;
+      const lx = startX + cols*(PW+GX) - GX;
+      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',lx+36); t.setAttribute('y',cy+4);
+      t.setAttribute('font-size','10'); t.setAttribute('fill','var(--text2)');
+      t.textContent = `+${moreCols} más`;
+      labSvg.appendChild(t);
+    }
+  }
+  if(moreRows>0){
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',startX); t.setAttribute('y', startY+rows*(PH+GY)+10);
+    t.setAttribute('font-size','10'); t.setAttribute('fill','var(--text2)');
+    t.setAttribute('font-style','italic');
+    t.textContent = `+ ${moreRows} string(s) más en paralelo →`;
+    labSvg.appendChild(t);
+  }
+  el.querySelector('#'+uid+'_wrap').appendChild(labSvg);
+
+  // ── Dibujar conexiones SVG
+  function drawConnections(){
+    svg.innerHTML = '';
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#3D6B8C';
+    const wireColor = '#888';
+    const busColor = '#555';
+
+    // Por cada fila: líneas entre paneles (serie) + línea al bus
+    for(let r=0;r<rows;r++){
+      const py = startY + r*(PH+GY);
+      const cy = py + PH/2;
+      // líneas serie entre paneles
+      for(let c=0;c<cols-1;c++){
+        const x1 = startX + c*(PW+GX) + PW;
+        const x2 = startX + (c+1)*(PW+GX);
+        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1',x1); line.setAttribute('y1',cy);
+        line.setAttribute('x2',x2); line.setAttribute('y2',cy);
+        line.setAttribute('stroke',accentColor); line.setAttribute('stroke-width','2.5');
+        line.setAttribute('stroke-linecap','round');
+        svg.appendChild(line);
+        // círculo conector en unión
+        const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        dot.setAttribute('cx',(x1+x2)/2); dot.setAttribute('cy',cy); dot.setAttribute('r','3');
+        dot.setAttribute('fill',accentColor); dot.setAttribute('opacity','.7');
+        svg.appendChild(dot);
+      }
+      // línea al bus (con dash si moreCols)
+      const lastPx = startX + (cols-1)*(PW+GX) + PW;
+      const busStartX = moreCols>0 ? lastPx+34 : lastPx;
+      if(moreCols>0){
+        const ld = document.createElementNS('http://www.w3.org/2000/svg','line');
+        ld.setAttribute('x1',lastPx); ld.setAttribute('y1',cy);
+        ld.setAttribute('x2',lastPx+28); ld.setAttribute('y2',cy);
+        ld.setAttribute('stroke',wireColor); ld.setAttribute('stroke-width','1.8');
+        ld.setAttribute('stroke-dasharray','4,3');
+        svg.appendChild(ld);
+      }
+      const lb = document.createElementNS('http://www.w3.org/2000/svg','line');
+      lb.setAttribute('x1',busStartX); lb.setAttribute('y1',cy);
+      lb.setAttribute('x2',BUS_X); lb.setAttribute('y2',cy);
+      lb.setAttribute('stroke',wireColor); lb.setAttribute('stroke-width','1.8');
+      svg.appendChild(lb);
+    }
+
+    // Bus vertical
+    const busTop    = startY + PH/2;
+    const busBottom = startY + (rows-1)*(PH+GY) + PH/2;
+    const busMid    = (busTop+busBottom)/2;
+    const busLine   = document.createElementNS('http://www.w3.org/2000/svg','line');
+    busLine.setAttribute('x1',BUS_X); busLine.setAttribute('y1',busTop);
+    busLine.setAttribute('x2',BUS_X); busLine.setAttribute('y2',busBottom);
+    busLine.setAttribute('stroke',busColor); busLine.setAttribute('stroke-width','3');
+    busLine.setAttribute('stroke-linecap','round');
+    svg.appendChild(busLine);
+
+    // Línea bus → inversor
+    const toInv = document.createElementNS('http://www.w3.org/2000/svg','line');
+    toInv.setAttribute('x1',BUS_X); toInv.setAttribute('y1',busMid);
+    toInv.setAttribute('x2',BUS_X+16); toInv.setAttribute('y2',busMid);
+    toInv.setAttribute('stroke',busColor); toInv.setAttribute('stroke-width','3');
+    svg.appendChild(toInv);
+
+    // Puntos en el bus por cada string
+    for(let r=0;r<rows;r++){
+      const cy = startY + r*(PH+GY) + PH/2;
+      const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dot.setAttribute('cx',BUS_X); dot.setAttribute('cy',cy); dot.setAttribute('r','4');
+      dot.setAttribute('fill',busColor);
+      svg.appendChild(dot);
+    }
+
+    // Etiqueta + y - en terminales del bus
+    [['＋',busTop-8,'var(--green)'],['－',busBottom+14,'var(--red)']].forEach(([sym,y,col])=>{
+      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',BUS_X+6); t.setAttribute('y',y);
+      t.setAttribute('font-size','11'); t.setAttribute('fill',col); t.setAttribute('font-weight','700');
+      t.textContent = sym;
+      svg.appendChild(t);
+    });
+  }
+
+  drawConnections();
+
+  // ── Drag & Drop interactivo entre celdas
+  let dragSrc = null;
+
+  panelEls.flat().forEach(div=>{
+    div.addEventListener('mousedown', e=>{
+      if(e.button!==0) return;
+      dragSrc = div;
+      div.style.zIndex = '50';
+      div.style.boxShadow = '0 8px 24px rgba(0,0,0,.35)';
+      div.style.transform = 'scale(1.08)';
+      div.style.cursor = 'grabbing';
+      div.style.transition = 'none';
+
+      const rect = grid.getBoundingClientRect();
+      const origLeft = parseInt(div.style.left);
+      const origTop  = parseInt(div.style.top);
+      const startMX = e.clientX;
+      const startMY = e.clientY;
+
+      function onMove(ev){
+        const dx = ev.clientX - startMX;
+        const dy = ev.clientY - startMY;
+        div.style.left = (origLeft+dx)+'px';
+        div.style.top  = (origTop +dy)+'px';
+      }
+      function onUp(ev){
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+
+        // Determinar celda destino según posición central del div arrastrado
+        const cx = parseInt(div.style.left) + PW/2;
+        const cy = parseInt(div.style.top ) + PH/2;
+        let tgtR = Math.round((cy - startY) / (PH+GY));
+        let tgtC = Math.round((cx - startX) / (PW+GX));
+        tgtR = Math.max(0, Math.min(rows-1, tgtR));
+        tgtC = Math.max(0, Math.min(cols-1, tgtC));
+
+        const srcR = +div.dataset.r;
+        const srcC = +div.dataset.c;
+
+        if(srcR!==tgtR || srcC!==tgtC){
+          // Intercambiar posiciones
+          const tgtDiv = panelEls[tgtR][tgtC];
+          // Mover srcDiv a posición tgtR,tgtC
+          div.style.left  = (startX + tgtC*(PW+GX))+'px';
+          div.style.top   = (startY + tgtR*(PH+GY))+'px';
+          div.dataset.r = tgtR; div.dataset.c = tgtC;
+          // Mover tgtDiv a posición srcR,srcC
+          tgtDiv.style.left = (startX + srcC*(PW+GX))+'px';
+          tgtDiv.style.top  = (startY + srcR*(PH+GY))+'px';
+          tgtDiv.dataset.r = srcR; tgtDiv.dataset.c = srcC;
+          panelEls[tgtR][tgtC] = div;
+          panelEls[srcR][srcC] = tgtDiv;
+        } else {
+          // Volver al origen
+          div.style.left = (startX + srcC*(PW+GX))+'px';
+          div.style.top  = (startY + srcR*(PH+GY))+'px';
+        }
+
+        div.style.zIndex = '1';
+        div.style.boxShadow = '0 2px 6px rgba(0,0,0,.18)';
+        div.style.transform = 'scale(1)';
+        div.style.cursor = 'grab';
+        div.style.transition = 'box-shadow .15s,transform .15s';
+        dragSrc = null;
+        drawConnections(); // re-trazar (en esta versión las conexiones no cambian, pero es por si se extiende)
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+
+    // Touch support
+    div.addEventListener('touchstart', e=>{
+      const t = e.touches[0];
+      const origLeft = parseInt(div.style.left);
+      const origTop  = parseInt(div.style.top);
+      const startMX = t.clientX, startMY = t.clientY;
+      div.style.zIndex='50'; div.style.transform='scale(1.08)'; div.style.transition='none';
+      function onTMove(ev){ ev.preventDefault();
+        const tt=ev.touches[0];
+        div.style.left=(origLeft+tt.clientX-startMX)+'px';
+        div.style.top =(origTop +tt.clientY-startMY)+'px';
+      }
+      function onTEnd(){
+        div.removeEventListener('touchmove',onTMove);
+        div.removeEventListener('touchend',onTEnd);
+        const cx = parseInt(div.style.left)+PW/2;
+        const cy = parseInt(div.style.top )+PH/2;
+        let tgtR=Math.max(0,Math.min(rows-1,Math.round((cy-startY)/(PH+GY))));
+        let tgtC=Math.max(0,Math.min(cols-1,Math.round((cx-startX)/(PW+GX))));
+        const srcR=+div.dataset.r, srcC=+div.dataset.c;
+        if(srcR!==tgtR||srcC!==tgtC){
+          const tgtDiv=panelEls[tgtR][tgtC];
+          div.style.left=(startX+tgtC*(PW+GX))+'px'; div.style.top=(startY+tgtR*(PH+GY))+'px';
+          div.dataset.r=tgtR; div.dataset.c=tgtC;
+          tgtDiv.style.left=(startX+srcC*(PW+GX))+'px'; tgtDiv.style.top=(startY+srcR*(PH+GY))+'px';
+          tgtDiv.dataset.r=srcR; tgtDiv.dataset.c=srcC;
+          panelEls[tgtR][tgtC]=div; panelEls[srcR][srcC]=tgtDiv;
+        } else {
+          div.style.left=(startX+srcC*(PW+GX))+'px'; div.style.top=(startY+srcR*(PH+GY))+'px';
+        }
+        div.style.zIndex='1'; div.style.transform='scale(1)'; div.style.transition='box-shadow .15s,transform .15s';
+        drawConnections();
+      }
+      div.addEventListener('touchmove',onTMove,{passive:false});
+      div.addEventListener('touchend',onTEnd);
+    },{passive:true});
+
+    // Hover glow
+    div.addEventListener('mouseenter',()=>{ if(!dragSrc){ div.style.boxShadow='0 4px 16px rgba(61,107,140,.45)'; div.style.transform='scale(1.04)'; }});
+    div.addEventListener('mouseleave',()=>{ if(!dragSrc){ div.style.boxShadow='0 2px 6px rgba(0,0,0,.18)'; div.style.transform='scale(1)'; }});
+  });
 }
 
 /* ══════════════════════════════════════════════════════
-   VISUALIZACIÓN DEL BANCO DE BATERÍAS — serie/paralelo
+   VISUALIZACIÓN INTERACTIVA DEL BANCO DE BATERÍAS
+   Baterías arrastrables, conexiones dinámicas, Ah/V visible
 ══════════════════════════════════════════════════════ */
 function renderBatteryDiagram(opt, batV, batTipo){
   const el = document.getElementById('bat-diagram');
   if(!el || !opt || !opt.nb) { if(el) el.innerHTML=''; return; }
 
-  const vc = opt.vc;       // baterías en serie por string
-  const nb = opt.nb;       // strings en paralelo
+  const vc = opt.vc;   // baterías en serie por string
+  const nb = opt.nb;   // strings en paralelo
   const rows = Math.min(nb, 4);
   const cols = Math.min(vc, 6);
   const moreRows = nb - rows;
   const moreCols = vc - cols;
 
-  const bw=36, bh=24, gx=14, gy=18;
-  const startX = 50, startY = 24;
-  const lastColX = startX + (cols-1)*(bw+gx) + bw;
-  const busX = (moreCols>0 ? lastColX+30+58 : lastColX+30);
+  const BW=50, BH=32, GX=14, GY=18;
+  const LABEL_W=36, PAD=14;
+  const startX = LABEL_W + PAD;
+  const startY = PAD;
+  const totalColsW = cols*(BW+GX) - GX + (moreCols>0?60:0);
+  const BUS_X = startX + totalColsW + 28;
+  const INV_W=96, INV_H=56;
+  const svgH = Math.max(130, startY + rows*(BH+GY) + (moreRows>0?28:0) + PAD);
+  const svgW = BUS_X + INV_W + 24;
 
-  let cells='', wires='', labels='';
-  for(let r=0;r<rows;r++){
-    const y = startY + r*(bh+gy);
-    for(let c=0;c<cols;c++){
-      const x = startX + c*(bw+gx);
-      cells += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="3" fill="var(--green)" opacity=".85" stroke="var(--ink)" stroke-width=".6"/>
-        <line x1="${x+6}" y1="${y+bh/2}" x2="${x+bw-6}" y2="${y+bh/2}" stroke="#fff" stroke-width=".6" opacity=".6"/>`;
-      if(c<cols-1){
-        const wy=y+bh/2;
-        wires += `<line x1="${x+bw}" y1="${wy}" x2="${x+bw+gx}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
-      }
-    }
-    const wy = y+bh/2;
-    if(moreCols>0){
-      wires += `<line x1="${lastColX}" y1="${wy}" x2="${lastColX+30}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4" stroke-dasharray="3,3"/>
-        <text x="${lastColX+34}" y="${wy+4}" font-size="10.5" fill="var(--text2)">+${moreCols} más</text>`;
-      wires += `<line x1="${lastColX+88}" y1="${wy}" x2="${busX}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
-    } else {
-      wires += `<line x1="${lastColX}" y1="${wy}" x2="${busX}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
-    }
-    labels += `<text x="${startX-8}" y="${wy+4}" font-size="10.5" fill="var(--text2)" text-anchor="end">B${r+1}</text>`;
-  }
-  if(moreRows>0){
-    const y = startY + rows*(bh+gy) - gy + 14;
-    labels += `<text x="${startX}" y="${y}" font-size="11.5" fill="var(--text2)" font-style="italic">+ ${moreRows} string(s) más en paralelo →</text>`;
-  }
+  const uid2 = 'bd_' + Date.now();
 
-  const busTop = startY + bh/2;
-  const busBottom = startY + (rows-1)*(bh+gy) + bh/2;
-  const invX = busX + 30, invY = (busTop+busBottom)/2 - 22, invW = 84, invH = 44;
-  const svgH = Math.max(120, startY + rows*(bh+gy) + (moreRows>0?26:0));
-  const svgW = invX + invW + 16;
+  // Color según tipo
+  const batColor = batTipo==='litio' ? 'var(--green)' : batTipo==='agm' ? 'var(--accent)' : 'var(--purple)';
 
   el.innerHTML = `
-    <div class="card-title" style="margin-bottom:6px"><span>🔋</span> Visualización del banco de baterías (${batTipo.toUpperCase()} ${batV}V)</div>
-    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);padding:8px">
-      <svg viewBox="0 0 ${svgW} ${svgH}" width="100%" style="min-width:420px;display:block">
-        ${cells}${wires}${labels}
-        <line x1="${busX}" y1="${busTop}" x2="${busX}" y2="${busBottom}" stroke="var(--ink2)" stroke-width="1.6"/>
-        <line x1="${busX}" y1="${(busTop+busBottom)/2}" x2="${invX}" y2="${(busTop+busBottom)/2}" stroke="var(--ink2)" stroke-width="1.6"/>
-        <rect x="${invX}" y="${invY}" width="${invW}" height="${invH}" rx="6" fill="var(--bg3)" stroke="var(--border2)" stroke-width="1.4"/>
-        <text x="${invX+invW/2}" y="${invY+18}" font-size="11" font-weight="700" fill="var(--text)" text-anchor="middle">Inversor</text>
-        <text x="${invX+invW/2}" y="${invY+32}" font-size="9.5" fill="var(--text2)" text-anchor="middle">/ Cargador</text>
-      </svg>
+    <div class="card-title" style="margin-bottom:8px"><span>🔋</span> Visualización del banco de baterías (${batTipo.toUpperCase()} ${batV}V)
+      <span style="font-size:10px;color:var(--text3);font-weight:400;margin-left:8px">— arrastra para reorganizar</span>
+    </div>
+    <div id="${uid2}_wrap" style="position:relative;overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);padding:${PAD}px;min-height:${svgH}px">
+      <svg id="${uid2}_svg" style="position:absolute;top:0;left:0;pointer-events:none;overflow:visible" width="${svgW}" height="${svgH}"></svg>
+      <div id="${uid2}_grid" style="position:relative;width:${svgW}px;height:${svgH}px"></div>
+      <div id="${uid2}_inv" style="position:absolute;border:2px solid var(--border2);border-radius:8px;background:var(--bg3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:var(--shadow)">
+        <span style="font-size:16px">⚡</span>
+        <span style="font-size:10.5px;font-weight:700;color:var(--text)">Inversor</span>
+        <span style="font-size:9.5px;color:var(--text2)">/ Cargador</span>
+      </div>
     </div>
     <div class="g3" style="margin-top:10px;gap:8px">
       <div class="stat"><div class="stat-label">Total baterías</div><div class="stat-val">${opt.nbTotal}</div><div class="stat-unit">${nb} string(s) × ${vc} en serie</div></div>
@@ -2330,6 +2586,179 @@ function renderBatteryDiagram(opt, batV, batTipo){
       <div class="stat green"><div class="stat-label">Energía total banco</div><div class="stat-val">${f0(opt.energiaWh)}</div><div class="stat-unit">Wh</div></div>
     </div>
   `;
+
+  const grid2 = document.getElementById(uid2+'_grid');
+  const svg2  = document.getElementById(uid2+'_svg');
+  const invEl2= document.getElementById(uid2+'_inv');
+  const invY0 = startY + (rows*(BH+GY)-GY)/2 - INV_H/2;
+  invEl2.style.cssText += `;left:${BUS_X+14}px;top:${invY0}px;width:${INV_W}px;height:${INV_H}px;`;
+
+  // Crear divs de baterías
+  function makeBatEl(r,c){
+    const px = startX + c*(BW+GX);
+    const py = startY + r*(BH+GY);
+    const div = document.createElement('div');
+    div.dataset.r = r; div.dataset.c = c;
+    div.style.cssText = `position:absolute;left:${px}px;top:${py}px;width:${BW}px;height:${BH}px;
+      border-radius:5px;background:${batColor};cursor:grab;user-select:none;
+      border:1.5px solid rgba(0,0,0,.2);box-shadow:0 2px 6px rgba(0,0,0,.18);
+      display:flex;align-items:center;justify-content:center;flex-direction:column;
+      transition:box-shadow .15s,transform .15s;z-index:1;`;
+    div.innerHTML = `
+      <span style="font-size:8.5px;color:rgba(255,255,255,.95);font-weight:700;line-height:1.3">${opt.ah}Ah</span>
+      <span style="font-size:7.5px;color:rgba(255,255,255,.75)">${batV}V</span>`;
+    div.title = `Batería ${r+1}-${c+1} | ${opt.ah}Ah ${batV}V ${batTipo.toUpperCase()}`;
+    return div;
+  }
+
+  const batEls = [];
+  for(let r=0;r<rows;r++){
+    batEls.push([]);
+    for(let c=0;c<cols;c++){
+      const div = makeBatEl(r,c);
+      grid2.appendChild(div);
+      batEls[r].push(div);
+    }
+  }
+
+  // Etiquetas SVG
+  const labSvg2 = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  labSvg2.setAttribute('style','position:absolute;top:0;left:0;pointer-events:none;overflow:visible');
+  labSvg2.setAttribute('width',svgW); labSvg2.setAttribute('height',svgH);
+  for(let r=0;r<rows;r++){
+    const cy = startY + r*(BH+GY) + BH/2;
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',startX-6); t.setAttribute('y',cy+4);
+    t.setAttribute('font-size','10'); t.setAttribute('fill','var(--text2)'); t.setAttribute('text-anchor','end');
+    t.textContent = `B${r+1}`;
+    labSvg2.appendChild(t);
+  }
+  if(moreCols>0){
+    for(let r=0;r<rows;r++){
+      const cy = startY + r*(BH+GY) + BH/2;
+      const lx = startX + cols*(BW+GX) - GX;
+      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',lx+28); t.setAttribute('y',cy+4);
+      t.setAttribute('font-size','10'); t.setAttribute('fill','var(--text2)');
+      t.textContent = `+${moreCols} más`;
+      labSvg2.appendChild(t);
+    }
+  }
+  if(moreRows>0){
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',startX); t.setAttribute('y',startY+rows*(BH+GY)+10);
+    t.setAttribute('font-size','10'); t.setAttribute('fill','var(--text2)'); t.setAttribute('font-style','italic');
+    t.textContent = `+ ${moreRows} string(s) más en paralelo →`;
+    labSvg2.appendChild(t);
+  }
+  el.querySelector('#'+uid2+'_wrap').appendChild(labSvg2);
+
+  function drawBatConnections(){
+    svg2.innerHTML='';
+    const greenColor = '#3F7A5C';
+    const wireColor = '#888';
+    const busColor = '#555';
+
+    for(let r=0;r<rows;r++){
+      const cy = startY + r*(BH+GY) + BH/2;
+      for(let c=0;c<cols-1;c++){
+        const x1 = startX + c*(BW+GX) + BW;
+        const x2 = startX + (c+1)*(BW+GX);
+        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1',x1); line.setAttribute('y1',cy);
+        line.setAttribute('x2',x2); line.setAttribute('y2',cy);
+        line.setAttribute('stroke',greenColor); line.setAttribute('stroke-width','2.5');
+        line.setAttribute('stroke-linecap','round');
+        svg2.appendChild(line);
+        const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        dot.setAttribute('cx',(x1+x2)/2); dot.setAttribute('cy',cy); dot.setAttribute('r','3');
+        dot.setAttribute('fill',greenColor); dot.setAttribute('opacity','.7');
+        svg2.appendChild(dot);
+      }
+      const lastPx = startX + (cols-1)*(BW+GX) + BW;
+      const busStartX = moreCols>0 ? lastPx+30 : lastPx;
+      if(moreCols>0){
+        const ld = document.createElementNS('http://www.w3.org/2000/svg','line');
+        ld.setAttribute('x1',lastPx); ld.setAttribute('y1',cy);
+        ld.setAttribute('x2',lastPx+24); ld.setAttribute('y2',cy);
+        ld.setAttribute('stroke',wireColor); ld.setAttribute('stroke-width','1.8');
+        ld.setAttribute('stroke-dasharray','4,3');
+        svg2.appendChild(ld);
+      }
+      const lb = document.createElementNS('http://www.w3.org/2000/svg','line');
+      lb.setAttribute('x1',busStartX); lb.setAttribute('y1',cy);
+      lb.setAttribute('x2',BUS_X); lb.setAttribute('y2',cy);
+      lb.setAttribute('stroke',wireColor); lb.setAttribute('stroke-width','1.8');
+      svg2.appendChild(lb);
+    }
+
+    const busTop    = startY + BH/2;
+    const busBottom = startY + (rows-1)*(BH+GY) + BH/2;
+    const busMid    = (busTop+busBottom)/2;
+    const busLine   = document.createElementNS('http://www.w3.org/2000/svg','line');
+    busLine.setAttribute('x1',BUS_X); busLine.setAttribute('y1',busTop);
+    busLine.setAttribute('x2',BUS_X); busLine.setAttribute('y2',busBottom);
+    busLine.setAttribute('stroke',busColor); busLine.setAttribute('stroke-width','3');
+    busLine.setAttribute('stroke-linecap','round');
+    svg2.appendChild(busLine);
+
+    const toInv = document.createElementNS('http://www.w3.org/2000/svg','line');
+    toInv.setAttribute('x1',BUS_X); toInv.setAttribute('y1',busMid);
+    toInv.setAttribute('x2',BUS_X+14); toInv.setAttribute('y2',busMid);
+    toInv.setAttribute('stroke',busColor); toInv.setAttribute('stroke-width','3');
+    svg2.appendChild(toInv);
+
+    for(let r=0;r<rows;r++){
+      const cy = startY + r*(BH+GY) + BH/2;
+      const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dot.setAttribute('cx',BUS_X); dot.setAttribute('cy',cy); dot.setAttribute('r','4');
+      dot.setAttribute('fill',busColor);
+      svg2.appendChild(dot);
+    }
+    [['＋',busTop-8,'#3F7A5C'],['－',busBottom+14,'#B5413B']].forEach(([sym,y,col])=>{
+      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',BUS_X+6); t.setAttribute('y',y);
+      t.setAttribute('font-size','11'); t.setAttribute('fill',col); t.setAttribute('font-weight','700');
+      t.textContent=sym; svg2.appendChild(t);
+    });
+  }
+
+  drawBatConnections();
+
+  // Drag & Drop baterías
+  batEls.flat().forEach(div=>{
+    div.addEventListener('mousedown',e=>{
+      if(e.button!==0) return;
+      const origLeft=parseInt(div.style.left), origTop=parseInt(div.style.top);
+      const startMX=e.clientX, startMY=e.clientY;
+      div.style.zIndex='50'; div.style.boxShadow='0 8px 24px rgba(0,0,0,.35)';
+      div.style.transform='scale(1.1)'; div.style.cursor='grabbing'; div.style.transition='none';
+      function onMove(ev){ div.style.left=(origLeft+ev.clientX-startMX)+'px'; div.style.top=(origTop+ev.clientY-startMY)+'px'; }
+      function onUp(){
+        document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp);
+        const cx=parseInt(div.style.left)+BW/2, cy=parseInt(div.style.top)+BH/2;
+        let tgtR=Math.max(0,Math.min(rows-1,Math.round((cy-startY)/(BH+GY))));
+        let tgtC=Math.max(0,Math.min(cols-1,Math.round((cx-startX)/(BW+GX))));
+        const srcR=+div.dataset.r, srcC=+div.dataset.c;
+        if(srcR!==tgtR||srcC!==tgtC){
+          const tD=batEls[tgtR][tgtC];
+          div.style.left=(startX+tgtC*(BW+GX))+'px'; div.style.top=(startY+tgtR*(BH+GY))+'px';
+          div.dataset.r=tgtR; div.dataset.c=tgtC;
+          tD.style.left=(startX+srcC*(BW+GX))+'px'; tD.style.top=(startY+srcR*(BH+GY))+'px';
+          tD.dataset.r=srcR; tD.dataset.c=srcC;
+          batEls[tgtR][tgtC]=div; batEls[srcR][srcC]=tD;
+        } else {
+          div.style.left=(startX+srcC*(BW+GX))+'px'; div.style.top=(startY+srcR*(BH+GY))+'px';
+        }
+        div.style.zIndex='1'; div.style.boxShadow='0 2px 6px rgba(0,0,0,.18)';
+        div.style.transform='scale(1)'; div.style.cursor='grab'; div.style.transition='box-shadow .15s,transform .15s';
+        drawBatConnections();
+      }
+      document.addEventListener('mousemove',onMove); document.addEventListener('mouseup',onUp);
+    });
+    div.addEventListener('mouseenter',()=>{ div.style.boxShadow='0 4px 16px rgba(63,122,92,.5)'; div.style.transform='scale(1.06)'; });
+    div.addEventListener('mouseleave',()=>{ div.style.boxShadow='0 2px 6px rgba(0,0,0,.18)'; div.style.transform='scale(1)'; });
+  });
 }
 
 /* ══════════════════════════════════════════════════════
