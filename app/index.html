@@ -248,13 +248,14 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 .tip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);color:var(--text);font-size:11px;padding:6px 10px;border-radius:6px;white-space:normal;max-width:250px;z-index:100;box-shadow:var(--shadow);font-weight:400}
 
 /* ── TOGGLE SWITCH visual ── */
-.auto-toggle{display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--text2);font-weight:600;cursor:pointer;margin-bottom:12px;line-height:1.4;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);transition:all .2s;user-select:none}
+.auto-toggle{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text2);font-weight:600;cursor:pointer;margin-bottom:12px;line-height:1.2;padding:7px 11px;border-radius:8px;border:1.5px solid var(--border);transition:all .2s;user-select:none;white-space:nowrap;overflow:hidden}
 .auto-toggle:has(input:checked){color:var(--accent);border-color:var(--accent);background:var(--accent-dim)}
 .auto-toggle input[type=checkbox]{display:none}
-.auto-toggle .toggle-track{flex-shrink:0;position:relative;width:34px;height:19px;background:var(--border2);border-radius:99px;transition:background .2s}
+.auto-toggle .toggle-track{flex-shrink:0;position:relative;width:30px;height:17px;background:var(--border2);border-radius:99px;transition:background .2s}
 .auto-toggle:has(input:checked) .toggle-track{background:var(--accent)}
-.auto-toggle .toggle-thumb{position:absolute;top:2.5px;left:2.5px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.auto-toggle:has(input:checked) .toggle-thumb{transform:translateX(15px)}
+.auto-toggle .toggle-thumb{position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.auto-toggle:has(input:checked) .toggle-thumb{transform:translateX(13px)}
+.auto-toggle .toggle-label{overflow:hidden;text-overflow:ellipsis;min-width:0}
 
 .breakdown{background:var(--bg3);border-radius:var(--radius-sm);padding:12px 16px;margin-top:10px}
 .breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
@@ -618,7 +619,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             <label class="auto-toggle">
               <input type="checkbox" id="panel-auto" checked onchange="toggleAutoPanel()">
               <span class="toggle-track"><span class="toggle-thumb"></span></span>
-              🤖 Recomendación — elige el panel más práctico para el resultado
+              <span class="toggle-label">🤖 Recomendación automática de panel</span>
             </label>
           </div>
           <div class="field-row">
@@ -673,7 +674,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             <label class="auto-toggle">
               <input type="checkbox" id="inv-auto" checked onchange="toggleAutoInv()">
               <span class="toggle-track"><span class="toggle-thumb"></span></span>
-              🤖 Recomendación — elige el inversor más práctico para el resultado
+              <span class="toggle-label">🤖 Recomendación automática de inversor</span>
             </label>
           </div>
           <div class="field-row">
@@ -705,7 +706,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
               <label class="auto-toggle">
                 <input type="checkbox" id="vbat-auto" checked onchange="toggleAutoVbat(this.checked)">
                 <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                🤖 Recomendación — según consumo Wh/día (0–2000→12V · 2000–4000→24V · 4000+→48V)
+                <span class="toggle-label">🤖 Voltaje batería automático</span>
               </label>
             </div>
           </div>
@@ -1957,11 +1958,39 @@ function calcAll(){
   const panIsc  = +document.getElementById('pan-isc').value ||14;
   const panVoc  = +document.getElementById('pan-voc').value ||49.9;
   const panVmpp = +document.getElementById('pan-vmpp').value||41.2;
-  const panPar  = +document.getElementById('pan-par').value ||1;
-  const panSer  = +document.getElementById('pan-ser').value ||1;
 
   const nPanel  = panWp > 0 ? ppico / panWp : 0;
   const nPanelR = Math.ceil(nPanel);
+
+  // ── Auto-calcular arreglo serie/paralelo óptimo ──
+  // Objetivo: distribuir nPanelR en (panSer en serie × panPar en paralelo)
+  // Restricción: VOC × panSer × fs ≤ Vdc del inversor (si lo conocemos)
+  const invSelIdForArr = document.getElementById('inv-sel').value;
+  const invObjForArr   = DB.inversores.find(x=>x.id===invSelIdForArr);
+  const invVdcLimit    = invObjForArr ? invObjForArr.vdc : 500; // default 500V
+  const maxSer = panVoc > 0 ? Math.max(1, Math.floor(invVdcLimit / (panVoc * fs))) : 1;
+
+  // Calcular la mejor combinación (ser × par) que ≥ nPanelR paneles con mínimo sobredimensionamiento
+  let bestSer = 1, bestPar = nPanelR;
+  let bestTotal = Infinity;
+  for(let s = 1; s <= Math.min(maxSer, nPanelR, 20); s++){
+    const p = Math.ceil(nPanelR / s);
+    const total = s * p;
+    if(total < bestTotal || (total === bestTotal && Math.abs(s-p) < Math.abs(bestSer-bestPar))){
+      bestTotal = total; bestSer = s; bestPar = p;
+    }
+  }
+
+  // Actualizar los campos # Paralelo y # Serie con la distribución óptima
+  const panParEl = document.getElementById('pan-par');
+  const panSerEl = document.getElementById('pan-ser');
+  if(autoPanel){ // Solo actualiza automáticamente cuando está en modo auto
+    panParEl.value = bestPar;
+    panSerEl.value = bestSer;
+  }
+
+  const panPar  = +panParEl.value ||1;
+  const panSer  = +panSerEl.value ||1;
   const iscPar  = panIsc * panPar;
   const vocSer  = panVoc * panSer;
   const iscFS   = iscPar * fs;
@@ -2020,10 +2049,57 @@ function calcAll(){
   // VISUALIZACIÓN DE ARREGLO (cadenas serie/paralelo) + compatibilidad con inversor
   const invSelId  = document.getElementById('inv-sel').value;
   const invObj    = (typeof DB!=='undefined' && DB.inversores) ? DB.inversores.find(x=>x.id===invSelId) : null;
+
+  // ── Alertas de compatibilidad cruzada ──
+  const compAlerts = [];
+  if(invObj){
+    // 1. VOC del arreglo vs Vdc máx del inversor
+    if(vocFS > invObj.vdc){
+      compAlerts.push({tipo:'error', msg:`⚡ VOC×F.S. del arreglo (${f2(vocFS)}V) supera el límite DC del inversor (${invObj.vdc}V). Reduce paneles en serie o elige un inversor con mayor Vdc máx.`});
+    } else if(vocFS > invObj.vdc * 0.9){
+      compAlerts.push({tipo:'warn', msg:`⚠️ VOC×F.S. (${f2(vocFS)}V) está muy cerca del límite DC del inversor (${invObj.vdc}V). Considera reducir 1 panel en serie.`});
+    }
+    // 2. ISC vs capacidad de entrada del inversor (aproximación: pot/vdc*1.3)
+    const invIscApprox = invObj.pot / (invObj.vdc * 0.5) * 1.5;
+    if(iscFS > invIscApprox){
+      compAlerts.push({tipo:'warn', msg:`⚠️ La corriente de cortocircuito del arreglo (${f2(iscFS)}A) puede ser alta para este inversor. Verifica la corriente de entrada DC máxima en la hoja de datos.`});
+    }
+    // 3. Voltaje de batería del banco vs lo que soporta el inversor
+    if(invObj.vbat !== 'none' && batV !== invObj.vbat){
+      compAlerts.push({tipo:'error', msg:`🔋 Incompatibilidad de voltaje: el inversor ${invObj.marca} ${invObj.modelo} opera a ${invObj.vbat}V de batería, pero el banco está configurado a ${batV}V. Ajusta el voltaje del sistema o elige otro inversor.`});
+    }
+    // 4. Inversor on-grid con baterías configuradas
+    if(invObj.vbat === 'none' && batV){
+      compAlerts.push({tipo:'warn', msg:`ℹ️ El inversor seleccionado es On-Grid (sin soporte de batería). El banco de baterías no aplicará en este sistema.`});
+    }
+    // 5. VMPP string vs rango MPPT inversor (estimado)
+    const strVmpp = panVmpp * panSer;
+    if(invObj.vdc && strVmpp < invObj.vdc * 0.1){
+      compAlerts.push({tipo:'warn', msg:`⚠️ La tensión VMPP del string (${f2(strVmpp)}V) podría estar por debajo del rango MPPT del inversor. Verifica el voltaje mínimo de entrada.`});
+    }
+  }
+  // 6. Alerta de paneles en serie con voltaje excesivo (genérica sin inversor)
+  if(!invObj && vocFS > 500){
+    compAlerts.push({tipo:'warn', msg:`⚠️ VOC×F.S. del arreglo es ${f2(vocFS)}V. Verifica que el inversor soporte este voltaje DC de entrada.`});
+  }
+
+  // Renderizar alertas
+  let alertsHtml = '';
+  if(compAlerts.length){
+    alertsHtml = `<div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">` +
+      compAlerts.map(a=>`<div style="padding:9px 13px;border-radius:7px;font-size:12px;font-weight:600;display:flex;gap:8px;align-items:flex-start;
+        background:${a.tipo==='error'?'var(--red-dim)':'var(--amber-dim)'};
+        border:1px solid ${a.tipo==='error'?'var(--red)':'var(--amber)'};
+        color:${a.tipo==='error'?'var(--red)':'var(--amber)'}">
+        <span style="flex-shrink:0">${a.tipo==='error'?'🔴':'🟡'}</span><span>${a.msg}</span></div>`).join('') +
+    `</div>`;
+  }
+
   renderArrayDiagram({
     nPanelR, panSer, panPar, panWp, panVoc, panVmpp, panIsc,
     vocFS, iscFS, fs,
-    invPot, invVdc: invObj ? invObj.vdc : null, invMppt: invObj ? invObj.mppt : null, invOk
+    invPot, invVdc: invObj ? invObj.vdc : null, invMppt: invObj ? invObj.mppt : null, invOk,
+    alertsHtml
   });
 
   // BATERÍAS
@@ -2054,10 +2130,13 @@ function calcAll(){
   window.__batChosen = chosenOpt; // usado por el resumen final
   renderBatteryDiagram(chosenOpt, batV, batTipo);
 
-  const batRows = batOptions.map(o=>{
+  const batRows = batOptions.map((o,idx)=>{
     const sel = o.ah===chosenAh ? ' row-selected' : '';
-    const tag = o.ah===bestOpt.ah ? ' <span class="auto-badge">recomendado</span>' : '';
-    return `<tr class="${sel.trim()}" onclick="selectBatRow(${o.ah})"><td>${o.ah} Ah${tag}</td><td class="c">${o.vc}</td><td class="r"><strong>${o.nb}</strong></td><td class="r">${o.nbTotal}</td><td class="r">${f0(o.energiaWh)} Wh</td></tr>`;
+    const isRec = o.ah===bestOpt.ah;
+    const isChosen = o.ah===chosenAh;
+    const tag = isRec ? ' <span class="auto-badge">recomendado</span>' : '';
+    const isExtra = !isRec && !isChosen;
+    return `<tr class="${sel.trim()}${isExtra?' bat-row-extra':''}" onclick="selectBatRow(${o.ah})" style="${isExtra?'display:none;':''}"><td>${o.ah} Ah${tag}</td><td class="c">${o.vc}</td><td class="r"><strong>${o.nb}</strong></td><td class="r">${o.nbTotal}</td><td class="r">${f0(o.energiaWh)} Wh</td></tr>`;
   }).join('');
 
   document.getElementById('bat-results').innerHTML = `
@@ -2070,8 +2149,9 @@ function calcAll(){
     <div class="card-title" style="margin-bottom:8px"><span>📊</span> N° baterías según capacidad (${batTipo.toUpperCase()} ${batV}V) — clic en una fila para elegirla</div>
     <div class="tbl-wrap"><table>
       <thead><tr><th>Capacidad</th><th class="c">En serie (${batV}V)</th><th class="r">Strings paralelo</th><th class="r">Total baterías</th><th class="r">Energía banco</th></tr></thead>
-      <tbody>${batRows}</tbody>
+      <tbody id="bat-tbody">${batRows}</tbody>
     </table></div>
+    <button onclick="toggleBatRows(this)" style="margin-top:8px;background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;padding:4px 0">+ Ver más opciones</button>
   `;
   document.getElementById('bat-formula').innerHTML = `
     <div class="f-step">1. Consumo a almacenar:</div>  ${f0(totCons)} Wh × ${batDias} días = <span class="f-res">${f0(consBat)} Wh</span>
@@ -2252,6 +2332,7 @@ function renderArrayDiagram(d){
       }
     </div>
     ${(d.invMppt!=null && rowsReal>d.invMppt) ? `<div style="margin-top:6px;font-size:11.5px;color:var(--amber)">⚠️ Tienes ${rowsReal} string(s) en paralelo independientes y el inversor solo tiene ${d.invMppt} MPPT — varios strings deberán combinarse en el mismo MPPT (usa combiner box o verifica que sea compatible).</div>` : ''}
+    ${d.alertsHtml||''}
   `;
 
   // ── Construir estado de paneles (orden por defecto: fila r, columna c)
@@ -2339,86 +2420,143 @@ function renderArrayDiagram(d){
   }
   el.querySelector('#'+uid+'_wrap').appendChild(labSvg);
 
-  // ── Dibujar conexiones SVG
+  // ── Dibujar conexiones SVG con cables rojo (+) y negro (-)
   function drawConnections(){
     svg.innerHTML = '';
-    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#3D6B8C';
-    const wireColor = '#888';
-    const busColor = '#555';
+    const RED   = '#e53535';  // cable rojo = positivo
+    const BLACK = '#1a1a1a';  // cable negro = negativo
+    const CONN  = '#3D6B8C';  // azul acento para conexiones serie internas
 
-    // Por cada fila: líneas entre paneles (serie) + línea al bus
+    // Cada panel: el lado derecho es + (arriba) y - (abajo) para conexión en serie
+    // En un string en serie: + del panel[c] → - del panel[c+1]
     for(let r=0;r<rows;r++){
       const py = startY + r*(PH+GY);
-      const cy = py + PH/2;
-      // líneas serie entre paneles
+      const topY  = py + 4;         // salida + (arriba derecha del panel)
+      const botY  = py + PH - 4;    // salida - (abajo derecha del panel)
+      const midY  = py + PH/2;
+
+      // Conexiones serie entre paneles: sale + del derecho del panel c, entra al - del izquierdo del c+1
       for(let c=0;c<cols-1;c++){
-        const x1 = startX + c*(PW+GX) + PW;
-        const x2 = startX + (c+1)*(PW+GX);
-        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-        line.setAttribute('x1',x1); line.setAttribute('y1',cy);
-        line.setAttribute('x2',x2); line.setAttribute('y2',cy);
-        line.setAttribute('stroke',accentColor); line.setAttribute('stroke-width','2.5');
-        line.setAttribute('stroke-linecap','round');
-        svg.appendChild(line);
-        // círculo conector en unión
-        const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
-        dot.setAttribute('cx',(x1+x2)/2); dot.setAttribute('cy',cy); dot.setAttribute('r','3');
-        dot.setAttribute('fill',accentColor); dot.setAttribute('opacity','.7');
-        svg.appendChild(dot);
+        const xRight = startX + c*(PW+GX) + PW;
+        const xLeft  = startX + (c+1)*(PW+GX);
+        const xMid   = (xRight + xLeft) / 2;
+
+        // Línea roja arriba (+ hacia +)
+        const lr = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+        lr.setAttribute('points',`${xRight},${topY} ${xMid},${topY}`);
+        lr.setAttribute('stroke',RED); lr.setAttribute('stroke-width','2'); lr.setAttribute('fill','none');
+        svg.appendChild(lr);
+
+        // Línea negra abajo (- hacia -)
+        const ln = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+        ln.setAttribute('points',`${xRight},${botY} ${xMid},${botY}`);
+        ln.setAttribute('stroke',BLACK); ln.setAttribute('stroke-width','2'); ln.setAttribute('fill','none');
+        svg.appendChild(ln);
+
+        // Puente vertical en el medio (conexión serie: + del siguiente panel)
+        const bridge = document.createElementNS('http://www.w3.org/2000/svg','line');
+        bridge.setAttribute('x1',xMid); bridge.setAttribute('y1',topY);
+        bridge.setAttribute('x2',xMid); bridge.setAttribute('y2',botY);
+        bridge.setAttribute('stroke',CONN); bridge.setAttribute('stroke-width','1.8');
+        bridge.setAttribute('stroke-dasharray','3,2');
+        svg.appendChild(bridge);
+
+        // Continúa rojo desde el centro al siguiente panel (arriba)
+        const lr2 = document.createElementNS('http://www.w3.org/2000/svg','line');
+        lr2.setAttribute('x1',xMid); lr2.setAttribute('y1',topY);
+        lr2.setAttribute('x2',xLeft); lr2.setAttribute('y2',topY);
+        lr2.setAttribute('stroke',RED); lr2.setAttribute('stroke-width','2');
+        svg.appendChild(lr2);
+
+        // Continúa negro al siguiente (abajo)
+        const ln2 = document.createElementNS('http://www.w3.org/2000/svg','line');
+        ln2.setAttribute('x1',xMid); ln2.setAttribute('y1',botY);
+        ln2.setAttribute('x2',xLeft); ln2.setAttribute('y2',botY);
+        ln2.setAttribute('stroke',BLACK); ln2.setAttribute('stroke-width','2');
+        svg.appendChild(ln2);
       }
-      // línea al bus (con dash si moreCols)
+
+      // Desde el último panel del string al bus
       const lastPx = startX + (cols-1)*(PW+GX) + PW;
       const busStartX = moreCols>0 ? lastPx+34 : lastPx;
+
       if(moreCols>0){
+        // línea punteada indicando más paneles
         const ld = document.createElementNS('http://www.w3.org/2000/svg','line');
-        ld.setAttribute('x1',lastPx); ld.setAttribute('y1',cy);
-        ld.setAttribute('x2',lastPx+28); ld.setAttribute('y2',cy);
-        ld.setAttribute('stroke',wireColor); ld.setAttribute('stroke-width','1.8');
-        ld.setAttribute('stroke-dasharray','4,3');
+        ld.setAttribute('x1',lastPx); ld.setAttribute('y1',midY);
+        ld.setAttribute('x2',lastPx+28); ld.setAttribute('y2',midY);
+        ld.setAttribute('stroke','#999'); ld.setAttribute('stroke-width','1.6'); ld.setAttribute('stroke-dasharray','4,3');
         svg.appendChild(ld);
       }
-      const lb = document.createElementNS('http://www.w3.org/2000/svg','line');
-      lb.setAttribute('x1',busStartX); lb.setAttribute('y1',cy);
-      lb.setAttribute('x2',BUS_X); lb.setAttribute('y2',cy);
-      lb.setAttribute('stroke',wireColor); lb.setAttribute('stroke-width','1.8');
-      svg.appendChild(lb);
+
+      // Cable rojo (+) al bus desde último panel
+      const posY = topY; // toma el + de arriba del último panel
+      const lr = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+      lr.setAttribute('points',`${busStartX},${topY} ${BUS_X-1},${topY} ${BUS_X-1},${midY-1}`);
+      lr.setAttribute('stroke',RED); lr.setAttribute('stroke-width','2.2'); lr.setAttribute('fill','none'); lr.setAttribute('stroke-linecap','round');
+      svg.appendChild(lr);
+
+      // Cable negro (-) al bus desde último panel
+      const ln = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+      ln.setAttribute('points',`${busStartX},${botY} ${BUS_X+1},${botY} ${BUS_X+1},${midY+1}`);
+      ln.setAttribute('stroke',BLACK); ln.setAttribute('stroke-width','2.2'); ln.setAttribute('fill','none'); ln.setAttribute('stroke-linecap','round');
+      svg.appendChild(ln);
     }
 
-    // Bus vertical
+    // Bus + vertical (rojo) y bus - vertical (negro) separados
     const busTop    = startY + PH/2;
     const busBottom = startY + (rows-1)*(PH+GY) + PH/2;
     const busMid    = (busTop+busBottom)/2;
-    const busLine   = document.createElementNS('http://www.w3.org/2000/svg','line');
-    busLine.setAttribute('x1',BUS_X); busLine.setAttribute('y1',busTop);
-    busLine.setAttribute('x2',BUS_X); busLine.setAttribute('y2',busBottom);
-    busLine.setAttribute('stroke',busColor); busLine.setAttribute('stroke-width','3');
-    busLine.setAttribute('stroke-linecap','round');
-    svg.appendChild(busLine);
 
-    // Línea bus → inversor
-    const toInv = document.createElementNS('http://www.w3.org/2000/svg','line');
-    toInv.setAttribute('x1',BUS_X); toInv.setAttribute('y1',busMid);
-    toInv.setAttribute('x2',BUS_X+16); toInv.setAttribute('y2',busMid);
-    toInv.setAttribute('stroke',busColor); toInv.setAttribute('stroke-width','3');
-    svg.appendChild(toInv);
+    // Bus positivo (rojo) a la izquierda del punto central
+    const busPos = document.createElementNS('http://www.w3.org/2000/svg','line');
+    busPos.setAttribute('x1',BUS_X-1); busPos.setAttribute('y1',busTop);
+    busPos.setAttribute('x2',BUS_X-1); busPos.setAttribute('y2',busBottom);
+    busPos.setAttribute('stroke',RED); busPos.setAttribute('stroke-width','3'); busPos.setAttribute('stroke-linecap','round');
+    svg.appendChild(busPos);
 
-    // Puntos en el bus por cada string
+    // Bus negativo (negro) a la derecha
+    const busNeg = document.createElementNS('http://www.w3.org/2000/svg','line');
+    busNeg.setAttribute('x1',BUS_X+1); busNeg.setAttribute('y1',busTop);
+    busNeg.setAttribute('x2',BUS_X+1); busNeg.setAttribute('y2',busBottom);
+    busNeg.setAttribute('stroke',BLACK); busNeg.setAttribute('stroke-width','3'); busNeg.setAttribute('stroke-linecap','round');
+    svg.appendChild(busNeg);
+
+    // Cable + (rojo) del bus al inversor (por arriba)
+    const toInvRed = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    toInvRed.setAttribute('points',`${BUS_X-1},${busMid-6} ${BUS_X+16},${busMid-6}`);
+    toInvRed.setAttribute('stroke',RED); toInvRed.setAttribute('stroke-width','3'); toInvRed.setAttribute('fill','none'); toInvRed.setAttribute('stroke-linecap','round');
+    svg.appendChild(toInvRed);
+
+    // Cable - (negro) del bus al inversor (por abajo)
+    const toInvBlk = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    toInvBlk.setAttribute('points',`${BUS_X+1},${busMid+6} ${BUS_X+16},${busMid+6}`);
+    toInvBlk.setAttribute('stroke',BLACK); toInvBlk.setAttribute('stroke-width','3'); toInvBlk.setAttribute('fill','none'); toInvBlk.setAttribute('stroke-linecap','round');
+    svg.appendChild(toInvBlk);
+
+    // Puntos de unión en el bus por cada string
     for(let r=0;r<rows;r++){
       const cy = startY + r*(PH+GY) + PH/2;
-      const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      dot.setAttribute('cx',BUS_X); dot.setAttribute('cy',cy); dot.setAttribute('r','4');
-      dot.setAttribute('fill',busColor);
-      svg.appendChild(dot);
+      const dp = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dp.setAttribute('cx',BUS_X-1); dp.setAttribute('cy',cy-0); dp.setAttribute('r','3.5'); dp.setAttribute('fill',RED);
+      svg.appendChild(dp);
+      const dn = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dn.setAttribute('cx',BUS_X+1); dn.setAttribute('cy',cy+0); dn.setAttribute('r','3.5'); dn.setAttribute('fill',BLACK);
+      svg.appendChild(dn);
     }
 
-    // Etiqueta + y - en terminales del bus
-    [['＋',busTop-8,'var(--green)'],['－',busBottom+14,'var(--red)']].forEach(([sym,y,col])=>{
-      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
-      t.setAttribute('x',BUS_X+6); t.setAttribute('y',y);
-      t.setAttribute('font-size','11'); t.setAttribute('fill',col); t.setAttribute('font-weight','700');
-      t.textContent = sym;
-      svg.appendChild(t);
-    });
+    // Leyenda + y - en el bus
+    const tPos = document.createElementNS('http://www.w3.org/2000/svg','text');
+    tPos.setAttribute('x',BUS_X-7); tPos.setAttribute('y',busTop-10);
+    tPos.setAttribute('font-size','11'); tPos.setAttribute('fill',RED); tPos.setAttribute('font-weight','800'); tPos.setAttribute('text-anchor','middle');
+    tPos.textContent = '+';
+    svg.appendChild(tPos);
+
+    const tNeg = document.createElementNS('http://www.w3.org/2000/svg','text');
+    tNeg.setAttribute('x',BUS_X+8); tNeg.setAttribute('y',busBottom+16);
+    tNeg.setAttribute('font-size','11'); tNeg.setAttribute('fill',BLACK); tNeg.setAttribute('font-weight','800'); tNeg.setAttribute('text-anchor','middle');
+    tNeg.textContent = '−';
+    svg.appendChild(tNeg);
   }
 
   drawConnections();
@@ -2922,6 +3060,13 @@ function onBatChange(){
 function selectBatRow(ah){
   selectedBatAh = ah;
   calcAll();
+}
+
+function toggleBatRows(btn){
+  const extras = document.querySelectorAll('.bat-row-extra');
+  const open = btn.textContent.startsWith('+');
+  extras.forEach(tr=>tr.style.display = open ? '' : 'none');
+  btn.textContent = open ? '− Ocultar opciones' : '+ Ver más opciones';
 }
 
 /* ══════════════════════════════════════════════════════
