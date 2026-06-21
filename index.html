@@ -100,6 +100,39 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   overflow-y:auto;
 }
 @media(max-width:768px){.sidebar{display:none}}
+
+/* ── MOBILE BOTTOM NAV ── */
+.mobile-nav{display:none}
+@media(max-width:768px){
+  .mobile-nav{
+    display:flex;position:fixed;bottom:0;left:0;right:0;z-index:300;
+    background:var(--bg2);border-top:1px solid var(--border);
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    box-shadow:0 -4px 16px rgba(0,0,0,.2);
+  }
+  .mnav-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:6px 2px;border-radius:8px;cursor:pointer;
+    font-size:10px;font-weight:600;color:var(--text2);transition:all var(--transition);
+  }
+  .mnav-item span{font-size:18px;line-height:1}
+  .mnav-item.active{color:var(--green)}
+  .main{padding-bottom:90px !important}
+}
+
+.mobile-more-overlay{
+  display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.5);
+  backdrop-filter:blur(2px);
+}
+.mobile-more-overlay.open{display:block}
+.mobile-more-sheet{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--bg2);border-top:1px solid var(--border);
+  border-radius:16px 16px 0 0;padding:8px 12px calc(16px + env(safe-area-inset-bottom));
+  max-height:70vh;overflow-y:auto;
+}
+.mobile-more-handle{width:36px;height:4px;background:var(--border2);border-radius:99px;margin:6px auto 14px}
+.mobile-more-sheet .slink{padding:12px 10px;font-size:14px}
 .sidebar-section{margin-bottom:20px}
 .sidebar-label{
   font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
@@ -471,12 +504,10 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
   </a>
   <nav class="topbar-nav">
     <div class="tnav active" onclick="showSection('s-calc','s-calc')">🧮 Calculadora</div>
-    <div class="tnav" onclick="showSection('s-paneles-cat','s-paneles-cat')">☀️ Paneles</div>
-    <div class="tnav" onclick="showSection('s-inv-cat','s-inv-cat')">⚡ Inversores</div>
-    <div class="tnav" onclick="showSection('s-bat-cat','s-bat-cat')">🔋 Baterías</div>
-    <div class="tnav" onclick="showSection('s-aire','s-aire')">❄️ Aires A/C</div>
+    <div class="tnav" onclick="showSection('s-proyectos','s-proyectos')">📁 Proyectos</div>
+    <div class="tnav" onclick="showSection('s-clientes','s-clientes')">👥 Clientes</div>
+    <div class="tnav" onclick="showSection('s-presupuestos','s-presupuestos')">💰 Presupuestos</div>
     <div class="tnav" onclick="showSection('s-ai','s-ai')">🤖 Asesor IA</div>
-    <div class="tnav" onclick="showSection('s-cuenta','s-cuenta')">🔑 Cuenta</div>
   </nav>
   <div class="topbar-right">
     <div id="userbox-area">
@@ -493,8 +524,10 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="sidebar-section">
-    <div class="sidebar-label">Calculadora</div>
+    <div class="sidebar-label">Principal</div>
     <div class="slink active" onclick="showSection('s-calc')"><span class="slink-icon">🧮</span>Dimensionador</div>
+    <div class="slink" onclick="showSection('s-proyectos')"><span class="slink-icon">📁</span>Proyectos</div>
+    <div class="slink" onclick="showSection('s-clientes')"><span class="slink-icon">👥</span>Clientes</div>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-label">Equipos</div>
@@ -502,6 +535,11 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
     <div class="slink" onclick="showSection('s-inv-cat')"><span class="slink-icon">⚡</span>Inversores</div>
     <div class="slink" onclick="showSection('s-bat-cat')"><span class="slink-icon">🔋</span>Baterías</div>
     <div class="slink" onclick="showSection('s-aire')"><span class="slink-icon">❄️</span>Aires A/C</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Gestión</div>
+    <div class="slink" onclick="showSection('s-presupuestos')"><span class="slink-icon">💰</span>Presupuestos</div>
+    <div class="slink" onclick="showSection('s-precios')"><span class="slink-icon">🏷️</span>Catálogo Precios</div>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-label">Herramientas</div>
@@ -514,6 +552,27 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
     <div id="sb-resumen">Sin datos aún</div>
   </div>
 </aside>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-nav">
+  <div class="mnav-item active" onclick="showSection('s-calc')"><span>🧮</span>Calc</div>
+  <div class="mnav-item" onclick="showSection('s-proyectos')"><span>📁</span>Proyectos</div>
+  <div class="mnav-item" onclick="showSection('s-clientes')"><span>👥</span>Clientes</div>
+  <div class="mnav-item" onclick="showSection('s-presupuestos')"><span>💰</span>Presup.</div>
+  <div class="mnav-item" onclick="toggleMobileMore()"><span>☰</span>Más</div>
+</nav>
+<div class="mobile-more-overlay" id="mobile-more-overlay" onclick="toggleMobileMore()">
+  <div class="mobile-more-sheet" onclick="event.stopPropagation()">
+    <div class="mobile-more-handle"></div>
+    <div class="slink" onclick="showSection('s-paneles-cat');toggleMobileMore()"><span class="slink-icon">☀️</span>Paneles FV</div>
+    <div class="slink" onclick="showSection('s-inv-cat');toggleMobileMore()"><span class="slink-icon">⚡</span>Inversores</div>
+    <div class="slink" onclick="showSection('s-bat-cat');toggleMobileMore()"><span class="slink-icon">🔋</span>Baterías</div>
+    <div class="slink" onclick="showSection('s-aire');toggleMobileMore()"><span class="slink-icon">❄️</span>Aires A/C</div>
+    <div class="slink" onclick="showSection('s-precios');toggleMobileMore()"><span class="slink-icon">🏷️</span>Catálogo Precios</div>
+    <div class="slink" onclick="showSection('s-ai');toggleMobileMore()"><span class="slink-icon">🤖</span>Asesor IA</div>
+    <div class="slink" onclick="showSection('s-cuenta');toggleMobileMore()"><span class="slink-icon">🔑</span>Cuenta</div>
+  </div>
+</div>
 
 <!-- MAIN -->
 <main class="main">
@@ -1213,13 +1272,15 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ FIREBASE (login + configuración privada por usuario) -->
+<!-- ═══════════════════════════════════════════ FIREBASE (Auth + Firestore: usuarios, clientes, proyectos, presupuestos, catálogo de precios, equipos personalizados) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc }
-    from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, deleteDoc, updateDoc,
+    collection, addDoc, getDocs, query, orderBy, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAuM0Bqk1vMgUEPZRmGucWCCaisYc4HkzA",
@@ -1239,27 +1300,34 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
   let currentUser = null;
   let saveTimer   = null;
 
+  // ── AUTH ──
   window.signInGoogle = async function(){
     try{ await signInWithPopup(auth, provider); }
     catch(e){ alert('No se pudo iniciar sesión: ' + e.message); }
   };
   window.signOutUser = async function(){ await signOut(auth); };
+  window.getCurrentUser = function(){ return currentUser; };
 
+  // ── CONFIGURACIÓN DE USUARIO (users/{uid}) ──
   async function loadUserSettings(uid){
     try{
       const snap = await getDoc(doc(db,'users',uid));
       if(snap.exists()){
         const data = snap.data();
         if(data.workerUrl){
-          document.getElementById('acc-worker-url').value = data.workerUrl;
-          document.getElementById('ai-worker-url').value  = data.workerUrl;
+          const a = document.getElementById('acc-worker-url'); if(a) a.value = data.workerUrl;
+          const b = document.getElementById('ai-worker-url');  if(b) b.value  = data.workerUrl;
         }
-        if(data.apiKey) document.getElementById('acc-api-key').value = data.apiKey;
+        if(data.apiKey){ const k = document.getElementById('acc-api-key'); if(k) k.value = data.apiKey; }
+        if(data.fsDefault){ const f = document.getElementById('p-fs'); if(f) f.value = data.fsDefault; }
+        if(data.hspDefault){ const h = document.getElementById('p-hsp'); if(h) h.value = data.hspDefault; }
+        if(data.ciudadDefault){ const c = document.getElementById('p-ciudad'); if(c) c.value = data.ciudadDefault; }
       }
+      // Cargar datos en la nube tras login: clientes, proyectos, equipos personalizados
+      if(window.onUserDataReady) window.onUserDataReady(uid);
     }catch(e){ console.error('Error cargando configuración:', e); }
   }
 
-  // Guarda la config del usuario (Worker URL / API Key) — privada por cuenta.
   window.onAccSettingsChange = function(){
     const status    = document.getElementById('acc-save-status');
     const workerUrl = document.getElementById('acc-worker-url').value.trim();
@@ -1285,6 +1353,45 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
     }, 600);
   };
 
+  // ── FIRESTORE GENÉRICO: helpers reutilizables para las 6 colecciones ──
+  // Todas las subcolecciones viven bajo users/{uid}/{coleccion}/{docId}
+
+  function requireAuth(){
+    if(!currentUser) throw new Error('Debes iniciar sesión para guardar en la nube.');
+    return currentUser.uid;
+  }
+
+  window.fsCreate = async function(coleccion, data){
+    const uid = requireAuth();
+    const ref = await addDoc(collection(db,'users',uid,coleccion), {
+      ...data, createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+    });
+    return ref.id;
+  };
+
+  window.fsUpdate = async function(coleccion, docId, data){
+    const uid = requireAuth();
+    await updateDoc(doc(db,'users',uid,coleccion,docId), { ...data, updatedAt: serverTimestamp() });
+  };
+
+  window.fsDelete = async function(coleccion, docId){
+    const uid = requireAuth();
+    await deleteDoc(doc(db,'users',uid,coleccion,docId));
+  };
+
+  window.fsGetAll = async function(coleccion){
+    const uid = requireAuth();
+    const snap = await getDocs(query(collection(db,'users',uid,coleccion), orderBy('updatedAt','desc')));
+    return snap.docs.map(d=>({ id:d.id, ...d.data() }));
+  };
+
+  window.fsGetOne = async function(coleccion, docId){
+    const uid = requireAuth();
+    const snap = await getDoc(doc(db,'users',uid,coleccion,docId));
+    return snap.exists() ? { id:snap.id, ...snap.data() } : null;
+  };
+
+  // ── AUTH STATE LISTENER ──
   onAuthStateChanged(auth, async (user)=>{
     currentUser = user;
     const area          = document.getElementById('userbox-area');
@@ -1294,18 +1401,23 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         <img class="user-avatar" src="${user.photoURL||''}" onerror="this.style.display='none'">
         ${(user.displayName||user.email||'Usuario').split(' ')[0]}</div>`;
       if(cuentaStatus) cuentaStatus.innerHTML = `
-        <div class="alert alert-ok"><span class="alert-icon">✅</span>Sesión iniciada como <strong>${user.email}</strong>. Tu configuración se guarda de forma privada, solo accesible para tu cuenta.</div>
+        <div class="alert alert-ok"><span class="alert-icon">✅</span>Sesión iniciada como <strong>${user.email}</strong>. Tus datos (clientes, proyectos, presupuestos, precios) se guardan de forma privada — solo tu cuenta puede leerlos o editarlos.</div>
         <button class="btn btn-secondary btn-sm" onclick="signOutUser()">Cerrar sesión</button>`;
+      await setDoc(doc(db,'users',user.uid), {
+        email:user.email, displayName:user.displayName||'', photoURL:user.photoURL||'', updatedAt: Date.now()
+      }, {merge:true});
       await loadUserSettings(user.uid);
+      if(window.refreshCloudUI) window.refreshCloudUI(true);
     } else {
       area.innerHTML = `<button class="btn btn-secondary btn-sm" id="btn-login" onclick="signInGoogle()">🔐 Iniciar sesión</button>`;
       if(cuentaStatus) cuentaStatus.innerHTML = `
-        <div class="alert alert-info"><span class="alert-icon">ℹ️</span>No has iniciado sesión. Tu configuración solo se guarda en este navegador (localStorage).</div>
+        <div class="alert alert-info"><span class="alert-icon">ℹ️</span>No has iniciado sesión. Tu configuración solo se guarda en este navegador (localStorage) y no podrás guardar Proyectos, Clientes ni Presupuestos en la nube.</div>
         <button class="btn btn-primary btn-sm" onclick="signInGoogle()">🔐 Iniciar sesión con Google</button>`;
       const lw = localStorage.getItem('sc-worker-url');
       const lk = localStorage.getItem('sc-api-key');
       if(lw){ document.getElementById('acc-worker-url').value = lw; document.getElementById('ai-worker-url').value = lw; }
       if(lk){ document.getElementById('acc-api-key').value = lk; }
+      if(window.refreshCloudUI) window.refreshCloudUI(false);
     }
   });
 </script>
@@ -1453,14 +1565,23 @@ document.getElementById('themeBtn').addEventListener('click',()=>{
 function showSection(id){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  document.querySelectorAll('.tnav,.slink').forEach(el=>{
+  document.querySelectorAll('.tnav,.slink,.mnav-item').forEach(el=>{
     el.classList.toggle('active', el.getAttribute('onclick')?.includes(id));
   });
-  if(id==='s-paneles-cat') renderPanelCatalog();
-  if(id==='s-inv-cat')     renderInvCatalog();
-  if(id==='s-bat-cat')     renderBatCatalog();
-  if(id==='s-aire')        renderAireCatalog();
-  if(id==='s-ai')          renderKB();
+  window.scrollTo({top:0, behavior:'instant'});
+  if(id==='s-paneles-cat')   renderPanelCatalog();
+  if(id==='s-inv-cat')       renderInvCatalog();
+  if(id==='s-bat-cat')       renderBatCatalog();
+  if(id==='s-aire')          renderAireCatalog();
+  if(id==='s-ai')            renderKB();
+  if(id==='s-proyectos')     renderProyectos();
+  if(id==='s-clientes')      renderClientes();
+  if(id==='s-presupuestos')  renderPresupuestos();
+  if(id==='s-precios')       renderPrecios();
+}
+
+function toggleMobileMore(){
+  document.getElementById('mobile-more-overlay').classList.toggle('open');
 }
 
 /* ══════════════════════════════════════════════════════
