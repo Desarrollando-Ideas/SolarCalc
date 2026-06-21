@@ -709,7 +709,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             </select>
             <label class="auto-toggle">
               <input type="checkbox" id="panel-auto" checked onchange="toggleAutoPanel()">
-              🤖 Recomendar automáticamente el panel más cercano al resultado
+              🤖 Recomendación — elige el panel más práctico para el resultado
             </label>
           </div>
           <div class="field-row">
@@ -762,7 +762,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             </select>
             <label class="auto-toggle">
               <input type="checkbox" id="inv-auto" checked onchange="toggleAutoInv()">
-              🤖 Recomendar automáticamente el inversor más cercano al resultado
+              🤖 Recomendación — elige el inversor más práctico para el resultado
             </label>
           </div>
           <div class="field-row">
@@ -793,7 +793,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
               </select>
               <label class="auto-toggle">
                 <input type="checkbox" id="vbat-auto" checked onchange="toggleAutoVbat(this.checked)">
-                🤖 Recomendar automáticamente según el consumo Wh/día (regla práctica: 0–2000→12V · 2000–4000→24V · 4000+→48V)
+                🤖 Recomendación — según consumo Wh/día (0–2000→12V · 2000–4000→24V · 4000+→48V)
               </label>
             </div>
           </div>
@@ -902,7 +902,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
     <div class="card-title"><span>🧮</span> Calculadora BTU → Watts</div>
     <div class="alert alert-warn" style="margin-bottom:12px">
       <span class="alert-icon">⚡</span>
-      <div><strong>Factor de arranque:</strong> Los aires de tipo ON/OFF tienen un pico de arranque de 3–5× la potencia nominal. Los inversores necesitan soportar ese pico. Los AC Inverter (Inverter) arrancan suave — factor ×1.3.</div>
+      <div><strong>Factor de arranque:</strong> Los aires ON/OFF tienen un pico de arranque de 3–5× la potencia nominal. Los Inverter arrancan suave — factor ×1.3.</div>
     </div>
     <div class="g3">
       <div class="field">
@@ -915,7 +915,6 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
           <option value="36000">36.000 BTU — 3 Ton</option>
           <option value="48000">48.000 BTU — 4 Ton</option>
           <option value="60000">60.000 BTU — 5 Ton</option>
-          <option value="custom">Personalizado…</option>
         </select>
       </div>
       <div class="field">
@@ -930,6 +929,30 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         <input type="number" id="aire-horas" value="8" step="0.5" oninput="calcAire()">
       </div>
     </div>
+
+    <hr>
+
+    <div class="field">
+      <label>¿Qué dato eléctrico tienes en la ficha técnica?</label>
+      <div class="mode-tabs" style="margin-bottom:12px">
+        <div class="mode-tab active" id="tab-eer" onclick="setAireDatoMode('eer')">📊 Tengo EER / SEER</div>
+        <div class="mode-tab" id="tab-watts" onclick="setAireDatoMode('watts')">⚡ Tengo Watts directos</div>
+      </div>
+    </div>
+
+    <div id="aire-modo-eer" class="g3">
+      <div class="field">
+        <label>EER / SEER del equipo <span class="tip" data-tip="Está en la ficha técnica o etiqueta de eficiencia energética. Inverter modernos: 13-18. ON/OFF básicos: 8-11.">?</span></label>
+        <input type="number" id="aire-eer" value="11" step="0.1" oninput="calcAire()">
+      </div>
+    </div>
+    <div id="aire-modo-watts" class="g3" style="display:none">
+      <div class="field">
+        <label>Potencia eléctrica nominal (W) <span class="tip" data-tip="Este es el dato directo de la placa o ficha, ej. 'Potencia: 1100W'. Más preciso que calcular por EER si lo tienes.">?</span></label>
+        <input type="number" id="aire-watts" value="1100" oninput="calcAire()">
+      </div>
+    </div>
+
     <div id="aire-calc-result"></div>
   </div>
 
@@ -1650,21 +1673,20 @@ function calcAll(){
   const batProt = potFSW / vbat;
   const acProt  = potFSW / 120;
 
-  const invSizes = [1500,2000,3000,4000,5000,6000,8000,10000,12000,15000,20000];
-  const invSug   = invSizes.find(s=>s>=potFSW)||invSizes[invSizes.length-1];
   const invOk    = invPot >= potFSW;
+  const badgeLabel = autoInv ? '🤖 Recomendación' : '✋ Manual';
 
-  document.getElementById('badge-inv').textContent = invOk ? `✓ ${f0(invPot)}W OK` : `⚠️ Necesita ≥${f0(potFSW)}W`;
+  document.getElementById('badge-inv').textContent = (invOk ? `✓ ${badgeLabel}: ${f0(invPot)}W` : `⚠️ ${badgeLabel}: necesita ≥${f0(potFSW)}W`);
   document.getElementById('inv-results').innerHTML = `
     <div class="g2" style="gap:8px">
-      <div class="stat ${invOk?'green':''}"><div class="stat-label">Pot. instalada + F.S.</div><div class="stat-val">${f0(potFSW)}</div><div class="stat-unit">W mínimo inversor</div></div>
-      <div class="stat blue"><div class="stat-label">Inversor sugerido</div><div class="stat-val">${f0(invSug)}</div><div class="stat-unit">W comercial mínimo</div></div>
+      <div class="stat ${invOk?'green':''}"><div class="stat-label">Pot. instalada + F.S.</div><div class="stat-val">${f0(potFSW)}</div><div class="stat-unit">W mínimo requerido</div></div>
+      <div class="stat blue"><div class="stat-label">Inversor seleccionado</div><div class="stat-val">${f0(invPot)}</div><div class="stat-unit">W (del catálogo)</div></div>
     </div>
-    ${!invOk?`<div class="alert alert-warn" style="margin-top:8px"><span class="alert-icon">⚠️</span>El inversor seleccionado (${f0(invPot)}W) es menor que la potencia requerida (${f0(potFSW)}W). Selecciona uno mayor.</div>`:''}
+    ${!invOk?`<div class="alert alert-warn" style="margin-top:8px"><span class="alert-icon">⚠️</span>El inversor seleccionado (${f0(invPot)}W) es menor que la potencia requerida (${f0(potFSW)}W). Elige uno mayor del catálogo o desactiva la recomendación automática y selecciona manualmente.</div>`:''}
   `;
   document.getElementById('inv-formula').innerHTML = `
     <div class="f-step">Potencia instalada (con arranque):</div>  ${f0(totPotSurge)} W × ${fs} F.S. = <span class="f-res">${f0(potFSW)} W</span>
-\n<div class="f-step">Inversor comercial mínimo:</div>  Siguiente potencia comercial ≥ ${f0(potFSW)}W = <span class="f-res">${f0(invSug)} W</span>
+\n<div class="f-step">Inversor del catálogo seleccionado:</div>  El menor inversor disponible que cubre ${f0(potFSW)}W = <span class="f-res">${f0(invPot)} W</span>
 \n<div class="f-step">Protección baterías (DC):</div>  ${f0(potFSW)} W ÷ ${vbat} V = ${f2(batProt)} A → Breaker <span class="f-res">${nextBreakerDown(batProt)} A ↓ (por debajo)</span>
 \n<div class="f-step">Protección inversor (AC):</div>  ${f0(potFSW)} W ÷ 120 V = ${f2(acProt)} A → Breaker <span class="f-res">${nextBreakerDown(acProt)} A ↓ (por debajo)</span>`;
 
@@ -1766,7 +1788,7 @@ function calcAll(){
         <tr><td>DC Paneles → Inversor</td><td>${f2(iscFS)} A</td><td>mm² (IEC)</td><td><strong>${cDC.eu} mm²</strong></td><td>Cable solar (UV, temperatura)</td></tr>
         <tr><td>DC Baterías → Inversor</td><td>${f2(batProt)} A</td><td>AWG</td><td><strong>AWG ${cBat.awg}</strong></td><td>Cable flexible, corto recorrido, alta corriente</td></tr>
         <tr><td>AC Inversor → Cargas</td><td>${f2(acProt)} A</td><td>AWG</td><td><strong>AWG ${cAC.awg}</strong></td><td>Cable THHN o libre de halógenos</td></tr>
-        <tr><td>Tierra de protección</td><td>—</td><td>mm²</td><td><strong>2.5–6 mm²</strong></td><td>Verde-amarillo, mínimo 2.5 mm²</td></tr>
+        <tr><td>Tierra de protección</td><td>—</td><td>AWG</td><td><strong>AWG 12</strong></td><td>Verde-amarillo, mínimo AWG 12</td></tr>
       </tbody>
     </table></div>
     <div style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.5">
@@ -1796,7 +1818,7 @@ function calcAll(){
       <div>
         <div class="breakdown">
           <div class="breakdown-row"><span>☀️ Paneles requeridos</span><span>${nPanelR} × ${panWp}Wp${autoPanel?' <span class="auto-badge">auto</span>':' <span class="manual-badge">manual</span>'}</span></div>
-          <div class="breakdown-row"><span>⚡ Inversor mínimo</span><span>${f0(invSug)} W${autoInv?' <span class="auto-badge">auto</span>':' <span class="manual-badge">manual</span>'}</span></div>
+          <div class="breakdown-row"><span>⚡ Inversor seleccionado</span><span>${f0(invPot)} W${autoInv?' <span class="auto-badge">auto</span>':' <span class="manual-badge">manual</span>'}</span></div>
           <div class="breakdown-row"><span>🔋 Baterías (${chosenOpt.ah}Ah ${batTipo.toUpperCase()})</span><span>${chosenOpt.nbTotal} und</span></div>
           <div class="breakdown-row"><span>🔌 Breaker DC</span><span>${breakerDC} A</span></div>
           <div class="breakdown-row"><span>⚡ DPS DC</span><span>${dpsDC} V</span></div>
@@ -1880,18 +1902,20 @@ function applyInvToFields(i){
   document.getElementById('badge-inv').textContent = i.marca + ' ' + i.modelo;
 }
 
-// Elige el panel cuya cantidad necesaria (redondeada hacia arriba) produzca la potencia
-// instalada MÁS CERCANA al pico requerido (menor desperdicio de Wp).
+// Elige el panel MÁS PRÁCTICO: primero minimiza el N° de paneles necesarios
+// (menos unidades = menos cableado, conectores, espacio de techo, mano de obra).
+// Como criterio de empate entre paneles que requieren el mismo N°, se prefiere
+// el que desperdicia menos potencia instalada respecto al pico requerido.
 function autoSelectPanel(ppico){
   if(!DB.paneles.length) return null;
-  let best=null, bestWaste=Infinity, bestCount=Infinity;
+  let best=null, bestCount=Infinity, bestWaste=Infinity;
   DB.paneles.forEach(p=>{
     if(p.wp<=0) return;
     const cnt   = Math.max(1, Math.ceil(ppico / p.wp));
     const total = cnt * p.wp;
     const waste = total - ppico;
-    if(waste < bestWaste - 0.001 || (Math.abs(waste-bestWaste)<0.001 && cnt<bestCount)){
-      best=p; bestWaste=waste; bestCount=cnt;
+    if(cnt < bestCount - 0.001 || (Math.abs(cnt-bestCount)<0.001 && waste < bestWaste - 0.001)){
+      best=p; bestCount=cnt; bestWaste=waste;
     }
   });
   return best;
@@ -2215,62 +2239,185 @@ function deleteBat(id){ DB.baterias=DB.baterias.filter(x=>x.id!==id); saveDB(); 
 /* ══════════════════════════════════════════════════════
    AIRES A/C
 ══════════════════════════════════════════════════════ */
+let aireModoActivo = 'eer'; // 'eer' o 'watts'
+let aireAutoRec = { panel:true, inversor:true, bateria:true };
+let aireNecesitaBateria = false;
+let airePanelSel = null;   // id de panel elegido manualmente (si autoRec.panel=false)
+let aireInvSel   = null;   // id de inversor elegido manualmente
+let aireBatCapSel = null;  // Ah elegido manualmente
+let aireBatDias = 1;
+let aireBatTipo = 'gel';
+
+function setAireDatoMode(modo){
+  aireModoActivo = modo;
+  document.getElementById('tab-eer').classList.toggle('active', modo==='eer');
+  document.getElementById('tab-watts').classList.toggle('active', modo==='watts');
+  document.getElementById('aire-modo-eer').style.display   = modo==='eer'?'':'none';
+  document.getElementById('aire-modo-watts').style.display = modo==='watts'?'':'none';
+  calcAire();
+}
+
 function calcAire(){
   const btu  = +document.getElementById('aire-btu').value||12000;
   const tipo = document.getElementById('aire-tipo').value;
   const hrs  = +document.getElementById('aire-horas').value||8;
   const fs   = tipo==='inverter'?1.3:3.5;
-  // EER (Energy Efficiency Ratio, BTU/h por cada W eléctrico consumido).
-  // BTU/3.41 da la potencia TÉRMICA (de enfriamiento), no el consumo eléctrico real.
-  // El consumo eléctrico real depende de la eficiencia del equipo:
-  const eer  = tipo==='inverter' ? 11 : 8; // Inverter ≈ EER 11 · ON/OFF ≈ EER 8 (valores típicos de mercado)
-  const wNom = btu/eer;           // consumo eléctrico nominal real (W)
-  const wTermico = btu/3.41;      // solo referencia: capacidad de enfriamiento en W (no es consumo eléctrico)
+
+  // ── POTENCIA ELÉCTRICA REAL: por EER o por Watts directos ──
+  let wNom, metodoTxt;
+  if(aireModoActivo === 'watts'){
+    wNom = +document.getElementById('aire-watts').value || 1100;
+    metodoTxt = `Dato directo de placa/ficha: <span class="f-res">${f0(wNom)} W</span>`;
+  } else {
+    const eer = +document.getElementById('aire-eer').value || 11;
+    wNom = btu/eer;
+    metodoTxt = `${btu} BTU ÷ EER ${eer} = <span class="f-res">${f0(wNom)} W consumo eléctrico real</span>`;
+  }
+  const wTermico = btu/3.41; // solo referencia, capacidad de enfriamiento (no consumo)
+
   const wArr = wNom*fs;
   const cons = wNom*hrs;
   const pFS  = 1.25;
   const hsp  = 4.5;
   const consFS = cons * pFS;
+  const ppico  = consFS / hsp;
 
-  // ── RECOMENDACIÓN DE INVERSOR (real, desde catálogo) ──
-  // El inversor debe: (1) soportar la potencia nominal continua con margen,
-  // y (2) soportar el pico de arranque — la mayoría de inversores admiten ~2× su potencia nominal como surge momentáneo.
+  // ── INVERSOR: candidatos válidos ordenados por potencia ──
   const invCandidatos = DB.inversores
     .filter(i => i.pot >= wNom*1.1 && (i.pot*2) >= wArr)
     .sort((a,b)=>a.pot-b.pot);
-  const invRecomendado = invCandidatos[0] || DB.inversores.slice().sort((a,b)=>b.pot-a.pot)[0];
+  const invPool = invCandidatos.length ? invCandidatos : DB.inversores.slice().sort((a,b)=>a.pot-b.pot);
 
-  // ── RECOMENDACIÓN DE PANELES (reales, desde catálogo) ──
-  // Potencia pico necesaria solo para cubrir el consumo de este equipo
-  const ppico = consFS / hsp;
-  // Elegimos 2 opciones de panel: uno de baja potencia y uno de alta, para mostrar variedad
-  const panelesOrdenados = DB.paneles.slice().sort((a,b)=>a.wp-b.wp);
-  const panelBajo = panelesOrdenados[0];
-  const panelAlto = panelesOrdenados[panelesOrdenados.length-1];
-  const panelMedio = panelesOrdenados[Math.floor(panelesOrdenados.length/2)];
+  if(aireAutoRec.inversor || !aireInvSel){
+    aireInvSel = invPool[0]?.id || null;
+  }
+  let invRecomendado = DB.inversores.find(i=>i.id===aireInvSel) || invPool[0];
 
-  const opcionesPanel = [panelBajo, panelMedio, panelAlto].filter((p,i,arr)=>arr.indexOf(p)===i);
-
-  const panelRows = opcionesPanel.map(p=>{
+  // ── PANELES: TODOS los del catálogo, ordenados por N° de paneles necesarios (más práctico primero) ──
+  const panelesConCalculo = DB.paneles.map(p=>{
     const nP = Math.ceil(ppico / p.wp);
-    return `<tr>
-      <td>${p.marca} ${p.modelo}</td>
+    const wpInstalado = nP * p.wp;
+    const desperdicio = wpInstalado - ppico;
+    return {p, nP, wpInstalado, desperdicio};
+  }).sort((a,b)=> a.nP - b.nP || a.desperdicio - b.desperdicio);
+
+  if(aireAutoRec.panel || !airePanelSel){
+    airePanelSel = panelesConCalculo[0]?.p.id || null;
+  }
+  const panelElegido = panelesConCalculo.find(x=>x.p.id===airePanelSel) || panelesConCalculo[0];
+
+  const panelRows = panelesConCalculo.map(({p,nP,wpInstalado})=>{
+    const checked = p.id===airePanelSel ? 'checked' : '';
+    return `<tr class="${p.id===airePanelSel?'tr-result':''}">
+      <td><label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+        <input type="radio" name="aire-panel-radio" value="${p.id}" ${checked} onchange="aireAutoRec.panel=false;document.getElementById('aire-panel-auto').checked=false;airePanelSel='${p.id}';calcAire()" style="width:auto;cursor:pointer">
+        ${p.marca} ${p.modelo}</label></td>
       <td class="c">${p.wp} Wp</td>
       <td class="r">${nP}</td>
-      <td class="r">${f0(nP*p.wp)} Wp instalados</td>
+      <td class="r">${f0(wpInstalado)} Wp</td>
     </tr>`;
   }).join('');
 
+  const invRows = invPool.map(i=>{
+    const checked = i.id===aireInvSel ? 'checked' : '';
+    return `<tr class="${i.id===aireInvSel?'tr-result':''}">
+      <td><label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+        <input type="radio" name="aire-inv-radio" value="${i.id}" ${checked} onchange="aireAutoRec.inversor=false;document.getElementById('aire-inv-auto').checked=false;aireInvSel='${i.id}';calcAire()" style="width:auto;cursor:pointer">
+        ${i.marca} ${i.modelo}</label></td>
+      <td class="c">${i.tipo}</td>
+      <td class="r">${f0(i.pot)} W</td>
+    </tr>`;
+  }).join('');
+
+  // ── BATERÍAS (opcional) ──
+  let bateriaHTML = '';
+  if(aireNecesitaBateria){
+    const batV = (invRecomendado.vbat && invRecomendado.vbat!=='none') ? invRecomendado.vbat : 12;
+    const batDOD = aireBatTipo==='litio'?0.9:0.5;
+    const consBat = cons * aireBatDias;
+    const ahNec = consBat / batV;
+    const ahReal = ahNec / batDOD;
+    const capacidadesDisp = [...new Set(DB.baterias.filter(b=>b.tipo===aireBatTipo).map(b=>b.ah))].sort((a,b)=>a-b);
+    const caps = capacidadesDisp.length ? capacidadesDisp : [100,150,200,250,300];
+
+    if(aireAutoRec.bateria || !aireBatCapSel || !caps.includes(aireBatCapSel)){
+      let mejor=null;
+      caps.forEach(ah=>{
+        const serie=Math.max(1,Math.round(batV/12));
+        const strings=Math.ceil(ahReal/ah);
+        const total=strings*serie;
+        if(!mejor||total<mejor.total) mejor={ah,total};
+      });
+      aireBatCapSel = mejor.ah;
+    }
+    const serieSel = Math.max(1, Math.round(batV/12));
+    const stringsSel = Math.ceil(ahReal/aireBatCapSel);
+    const totalBatSel = stringsSel*serieSel;
+
+    const batRows = caps.map(ah=>{
+      const serie = Math.max(1, Math.round(batV/12));
+      const strings = Math.ceil(ahReal/ah);
+      const total = strings*serie;
+      const checked = ah===aireBatCapSel?'checked':'';
+      return `<tr class="${ah===aireBatCapSel?'tr-result':''}">
+        <td><label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+          <input type="radio" name="aire-bat-radio" value="${ah}" ${checked} onchange="aireAutoRec.bateria=false;document.getElementById('aire-bat-auto').checked=false;aireBatCapSel=${ah};calcAire()" style="width:auto;cursor:pointer">
+          ${ah} Ah</label></td>
+        <td class="c">${serie}</td>
+        <td class="r">${strings}</td>
+        <td class="r"><strong>${total}</strong></td>
+      </tr>`;
+    }).join('');
+
+    bateriaHTML = `
+      <hr>
+      <div class="card-title"><span>🔋</span> Dimensionamiento de batería para este equipo
+        <label style="margin-left:auto;font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none">
+          <input type="checkbox" id="aire-bat-auto" ${aireAutoRec.bateria?'checked':''} onchange="aireAutoRec.bateria=this.checked;calcAire()" style="width:auto;cursor:pointer"> 🤖 Auto-recomendar
+        </label>
+      </div>
+      <div class="g3" style="margin-bottom:12px">
+        <div class="field">
+          <label>Tipo de batería</label>
+          <select onchange="aireBatTipo=this.value;calcAire()">
+            <option value="gel" ${aireBatTipo==='gel'?'selected':''}>GEL (DOD 50%)</option>
+            <option value="agm" ${aireBatTipo==='agm'?'selected':''}>AGM (DOD 50%)</option>
+            <option value="litio" ${aireBatTipo==='litio'?'selected':''}>Litio LiFePO₄ (DOD 90%)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Autonomía deseada (días)</label>
+          <input type="number" value="${aireBatDias}" min="0.5" step="0.5" onchange="aireBatDias=+this.value||1;calcAire()">
+        </div>
+        <div class="field">
+          <label>Tensión del banco</label>
+          <input type="text" value="${batV} V (según inversor)" readonly style="opacity:.6">
+        </div>
+      </div>
+      <div class="g4" style="margin-bottom:12px">
+        <div class="stat"><div class="stat-label">Consumo a cubrir</div><div class="stat-val">${f0(consBat)}</div><div class="stat-unit">Wh (${aireBatDias} día/s)</div></div>
+        <div class="stat green"><div class="stat-label">Ah base</div><div class="stat-val">${f1(ahNec)}</div><div class="stat-unit">Ah</div></div>
+        <div class="stat amber"><div class="stat-label">Ah reales (DOD)</div><div class="stat-val">${f1(ahReal)}</div><div class="stat-unit">Ah a instalar</div></div>
+        <div class="stat blue"><div class="stat-label">Total baterías</div><div class="stat-val">${totalBatSel}</div><div class="stat-unit">de ${aireBatCapSel}Ah</div></div>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th></th><th class="c">En serie</th><th class="r">Strings</th><th class="r">Total</th></tr></thead>
+        <tbody>${batRows}</tbody>
+      </table></div>
+    `;
+  }
+
+  // ── RENDER ──
   document.getElementById('aire-calc-result').innerHTML = `
     <div class="g4" style="margin-top:12px">
-      <div class="stat"><div class="stat-label">Potencia nominal (eléctrica)</div><div class="stat-val">${f0(wNom)}</div><div class="stat-unit">W (${btu/1000}k BTU ÷ EER ${eer})</div></div>
-      <div class="stat amber"><div class="stat-label">Potencia arranque (×${fs})</div><div class="stat-val">${f0(wArr)}</div><div class="stat-unit">W — inversor debe soportar esto</div></div>
+      <div class="stat"><div class="stat-label">Potencia eléctrica real</div><div class="stat-val">${f0(wNom)}</div><div class="stat-unit">W</div></div>
+      <div class="stat amber"><div class="stat-label">Potencia arranque (×${fs})</div><div class="stat-val">${f0(wArr)}</div><div class="stat-unit">W — pico que el inversor debe soportar</div></div>
       <div class="stat green"><div class="stat-label">Consumo diario</div><div class="stat-val">${f0(cons)}</div><div class="stat-unit">Wh/día (${hrs}h uso)</div></div>
       <div class="stat blue"><div class="stat-label">Consumo mensual</div><div class="stat-val">${f1(cons*30/1000)}</div><div class="stat-unit">kWh/mes</div></div>
     </div>
     <div class="formula-box">
       <div class="f-step">Capacidad de enfriamiento (referencia, NO es consumo):</div>  ${btu} BTU ÷ 3.41 = ${f0(wTermico)} W térmicos
-\n<div class="f-step">Potencia eléctrica real (según EER ${eer}):</div>  ${btu} BTU ÷ ${eer} = <span class="f-res">${f0(wNom)} W consumo eléctrico real</span>
+\n<div class="f-step">Potencia eléctrica real:</div>  ${metodoTxt}
 \n<div class="f-step">Potencia arranque (${tipo}):</div>  ${f0(wNom)} W × ${fs} = <span class="f-res">${f0(wArr)} W → el inversor debe soportar este pico</span>
 \n<div class="f-step">Consumo diario:</div>  ${f0(wNom)} W × ${hrs} h = <span class="f-res">${f0(cons)} Wh/día</span>
 \n<div class="f-step">Consumo + F.S. ×${pFS}:</div>  ${f0(cons)} × ${pFS} = <span class="f-res">${f0(consFS)} Wh/día de diseño</span>
@@ -2278,12 +2425,16 @@ function calcAire(){
     </div>
     <div class="alert alert-warn" style="margin-top:10px">
       <span class="alert-icon">⚠️</span>
-      <div>El inversor debe tener una capacidad de <strong>arranque</strong> de al menos <strong>${f0(wArr)} W</strong>. Verifica siempre la especificación de "potencia pico/surge" del inversor, no solo la nominal. La mayoría de inversores soportan ~2× su potencia nominal como pico momentáneo.</div>
+      <div>El inversor debe soportar un pico de arranque de al menos <strong>${f0(wArr)} W</strong>. La mayoría de inversores admiten ~2× su potencia nominal como surge momentáneo — verifica esa especificación en la ficha del equipo.</div>
     </div>
 
     <hr>
 
-    <div class="card-title"><span>⚡</span> Inversor recomendado para este equipo (catálogo real)</div>
+    <div class="card-title"><span>⚡</span> Inversor para este equipo
+      <label style="margin-left:auto;font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none">
+        <input type="checkbox" id="aire-inv-auto" ${aireAutoRec.inversor?'checked':''} onchange="aireAutoRec.inversor=this.checked;calcAire()" style="width:auto;cursor:pointer"> 🤖 Auto-recomendar
+      </label>
+    </div>
     <div class="equip-card" style="margin-bottom:14px">
       <div class="equip-header">
         <div>
@@ -2299,24 +2450,43 @@ function calcAire(){
         ${invRecomendado.vbat!=='none'?`<span class="equip-spec">Vbat: ${invRecomendado.vbat}V</span>`:''}
       </div>
       <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.4">${invRecomendado.notas||''}</div>
-      <div class="alert alert-ok" style="margin-top:8px;margin-bottom:0">
-        <span class="alert-icon">✓</span>
-        <div style="font-size:11px">Potencia nominal ${f0(invRecomendado.pot)}W cubre la carga continua (${f0(wNom)}W) y su surge estimado (~${f0(invRecomendado.pot*2)}W) cubre el pico de arranque de ${f0(wArr)}W de este equipo.</div>
+      <div class="alert ${invRecomendado.pot>=wNom*1.1?'alert-ok':'alert-warn'}" style="margin-top:8px;margin-bottom:0">
+        <span class="alert-icon">${invRecomendado.pot>=wNom*1.1?'✓':'⚠️'}</span>
+        <div style="font-size:11px">Potencia nominal ${f0(invRecomendado.pot)}W ${invRecomendado.pot>=wNom*1.1?'cubre':'puede no cubrir'} la carga continua (${f0(wNom)}W) y su surge estimado (~${f0(invRecomendado.pot*2)}W) ${(invRecomendado.pot*2)>=wArr?'cubre':'puede no cubrir'} el pico de arranque de ${f0(wArr)}W.</div>
       </div>
     </div>
+    <div class="tbl-wrap" style="margin-bottom:16px"><table>
+      <thead><tr><th>Inversor (catálogo)</th><th class="c">Tipo</th><th class="r">Potencia</th></tr></thead>
+      <tbody>${invRows}</tbody>
+    </table></div>
 
-    <div class="card-title"><span>☀️</span> Opciones de paneles para alimentar este equipo</div>
+    <div class="card-title"><span>☀️</span> Panel para este equipo
+      <label style="margin-left:auto;font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none">
+        <input type="checkbox" id="aire-panel-auto" ${aireAutoRec.panel?'checked':''} onchange="aireAutoRec.panel=this.checked;calcAire()" style="width:auto;cursor:pointer"> 🤖 Auto-recomendar
+      </label>
+    </div>
+    <div class="alert alert-ok" style="margin-bottom:10px">
+      <span class="alert-icon">✅</span>
+      <div><strong>Selección actual:</strong> ${panelElegido.nP} × ${panelElegido.p.marca} ${panelElegido.p.modelo} (${panelElegido.p.wp}Wp) = ${f0(panelElegido.wpInstalado)} Wp instalados</div>
+    </div>
     <div class="tbl-wrap"><table>
       <thead><tr><th>Panel (catálogo)</th><th class="c">Potencia</th><th class="r">N° paneles</th><th class="r">Wp instalados</th></tr></thead>
       <tbody>${panelRows}</tbody>
     </table></div>
+
     <div class="alert alert-info" style="margin-top:10px">
       <span class="alert-icon">💡</span>
-      <div>Se muestran 3 opciones del catálogo (potencia baja, media y alta) para que elijas según espacio disponible y presupuesto. Si este AC se va a sumar a un sistema existente, agrega su consumo a la tabla de cargas en la Calculadora.</div>
+      <div>Se muestran <strong>todos los paneles e inversores del catálogo</strong>, ordenados del más eficiente al menos eficiente para este equipo. La fila resaltada es la seleccionada — marca cualquier otra fila para elegirla manualmente. Si este AC se va a sumar a un sistema existente, agrega su consumo a la tabla de cargas en la Calculadora.</div>
     </div>
+
+    <hr>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text)">
+      <input type="checkbox" ${aireNecesitaBateria?'checked':''} onchange="aireNecesitaBateria=this.checked;calcAire()" style="width:auto;cursor:pointer">
+      🔋 Este equipo necesita autonomía con baterías
+    </label>
+    ${bateriaHTML}
   `;
 }
-
 function renderAireCatalog(){
   const g=document.getElementById('aire-grid');
   g.innerHTML = DB.aires.map(a=>`
