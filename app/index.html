@@ -247,15 +247,28 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 .tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--bg4);border:1px solid var(--border);color:var(--text3);font-size:9px;cursor:help;font-weight:700;margin-left:4px;position:relative}
 .tip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);color:var(--text);font-size:11px;padding:6px 10px;border-radius:6px;white-space:normal;max-width:250px;z-index:100;box-shadow:var(--shadow);font-weight:400}
 
-/* ── TOGGLE SWITCH visual ── */
-.auto-toggle{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text2);font-weight:600;cursor:pointer;margin-bottom:12px;line-height:1.2;padding:7px 11px;border-radius:8px;border:1.5px solid var(--border);transition:all .2s;user-select:none;white-space:nowrap;overflow:hidden}
-.auto-toggle:has(input:checked){color:var(--accent);border-color:var(--accent);background:var(--accent-dim)}
+/* ── TOGGLE CHECKLIST pill ── */
+.auto-toggle{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:11px;font-weight:600;cursor:pointer;
+  margin-bottom:10px;padding:5px 10px 5px 6px;
+  border-radius:6px;border:1.5px solid var(--border);
+  background:var(--bg2);color:var(--text2);
+  transition:all .18s;user-select:none;max-width:100%;
+}
+.auto-toggle:has(input:checked){
+  border-color:var(--accent);background:var(--accent-dim);color:var(--accent);
+}
 .auto-toggle input[type=checkbox]{display:none}
-.auto-toggle .toggle-track{flex-shrink:0;position:relative;width:30px;height:17px;background:var(--border2);border-radius:99px;transition:background .2s}
-.auto-toggle:has(input:checked) .toggle-track{background:var(--accent)}
-.auto-toggle .toggle-thumb{position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.auto-toggle:has(input:checked) .toggle-thumb{transform:translateX(13px)}
-.auto-toggle .toggle-label{overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* Caja check visual */
+.auto-toggle .chk-box{
+  flex-shrink:0;width:15px;height:15px;border-radius:4px;
+  border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;
+  font-size:10px;line-height:1;transition:background .15s;
+}
+.auto-toggle:has(input:checked) .chk-box{background:var(--accent);border-color:var(--accent);color:#fff;}
+.auto-toggle:has(input:checked) .chk-box::after{content:'✓';font-weight:900;}
+.auto-toggle .toggle-label{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 .breakdown{background:var(--bg3);border-radius:var(--radius-sm);padding:12px 16px;margin-top:10px}
 .breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
@@ -618,8 +631,8 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             </select>
             <label class="auto-toggle">
               <input type="checkbox" id="panel-auto" checked onchange="toggleAutoPanel()">
-              <span class="toggle-track"><span class="toggle-thumb"></span></span>
-              <span class="toggle-label">🤖 Recomendación automática de panel</span>
+              <span class="chk-box"></span>
+              <span class="toggle-label">🤖 Recomendación automática</span>
             </label>
           </div>
           <div class="field-row">
@@ -673,8 +686,8 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             </select>
             <label class="auto-toggle">
               <input type="checkbox" id="inv-auto" checked onchange="toggleAutoInv()">
-              <span class="toggle-track"><span class="toggle-thumb"></span></span>
-              <span class="toggle-label">🤖 Recomendación automática de inversor</span>
+              <span class="chk-box"></span>
+              <span class="toggle-label">🤖 Recomendación automática</span>
             </label>
           </div>
           <div class="field-row">
@@ -705,8 +718,8 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
               </select>
               <label class="auto-toggle">
                 <input type="checkbox" id="vbat-auto" checked onchange="toggleAutoVbat(this.checked)">
-                <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                <span class="toggle-label">🤖 Voltaje batería automático</span>
+                <span class="chk-box"></span>
+                <span class="toggle-label">🤖 Voltaje automático</span>
               </label>
             </div>
           </div>
@@ -3889,6 +3902,8 @@ Responde en español, de forma clara y estructurada. Usa listas cuando sea útil
    INIT
 ══════════════════════════════════════════════════════ */
 function wrapFormulaBoxes(){
+  // Solo envuelve los formula-box que NO están dentro de un div que se reescribe por calcAll
+  // (los que sí se reescriben usan la función wrapCalcFormula dentro de calcAll)
   document.querySelectorAll('.formula-box').forEach(box=>{
     if(box.dataset.wrapped) return;
     box.dataset.wrapped = '1';
@@ -3911,8 +3926,9 @@ document.getElementById('p-fecha').value = new Date().toISOString().split('T')[0
 populateSelects();
 renderCargas();
 calcAire();
-setTimeout(initPvgisMap, 100);
+calcAll();
 wrapFormulaBoxes();
+setTimeout(()=>{ initPvgisMap(); if(__pvgisMap) __pvgisMap.invalidateSize(); }, 600);
 </script>
 </body>
 </html>
