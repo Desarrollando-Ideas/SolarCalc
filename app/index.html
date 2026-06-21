@@ -186,6 +186,12 @@ tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--bg3)}
 .tr-total td{font-weight:700;background:var(--bg3) !important}
 .tr-fs td{font-weight:600;color:var(--amber);background:var(--amber-dim) !important}
+.drag-handle{cursor:grab;color:var(--text2);white-space:nowrap;user-select:none}
+.drag-handle:active{cursor:grabbing}
+.drag-grip{display:inline-block;margin-right:4px;color:var(--text3);font-size:13px;letter-spacing:-1px}
+#cargas-tbody tr{transition:background .12s}
+#cargas-tbody tr.dragging{opacity:.4}
+#cargas-tbody tr.drag-over{box-shadow:inset 0 2px 0 var(--accent)}
 .tr-result td{font-weight:700;color:var(--green)}
 td.r{text-align:right}
 td.c{text-align:center}
@@ -451,10 +457,6 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
           <label>Fecha</label>
           <input type="date" id="p-fecha">
         </div>
-        <div class="field">
-          <label>Factor seguridad <span class="tip" data-tip="Factor de seguridad del sistema. 1.25 = 25% extra. Recomendado mínimo 1.25.">?</span></label>
-          <input type="number" id="p-fs" value="1.25" step="0.05" oninput="calcAll()">
-        </div>
         <input type="hidden" id="p-hsp" value="4.5" oninput="calcAll()">
       </div>
 
@@ -545,7 +547,13 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
       </div>
       <div class="alert alert-info" style="margin-bottom:12px">
         <span class="alert-icon">💡</span>
-        <div>Ingresa cada carga eléctrica. <strong>Consumo = Cantidad × Potencia × Horas/día</strong>. La potencia instalada = Cantidad × Potencia (para el inversor). Activa <strong>⚡ ×4</strong> en motores o electrodomésticos de arranque pesado (nevera, lavadora, licuadora, bomba, A/C) para que el inversor se dimensione con el pico de arranque, no solo la potencia nominal.</div>
+        <div>Ingresa cada carga eléctrica. <strong>Consumo = Cantidad × Potencia × Horas/día</strong>. La potencia instalada = Cantidad × Potencia (para el inversor). Activa <strong>⚡ ×4</strong> en motores o electrodomésticos de arranque pesado (nevera, lavadora, licuadora, bomba, A/C) para que el inversor se dimensione con el pico de arranque, no solo la potencia nominal. Arrastra desde el ⠿ de la columna # para reordenar las filas.</div>
+      </div>
+      <div class="field-row" style="max-width:220px;margin-bottom:14px">
+        <div class="field">
+          <label>Factor seguridad <span class="tip" data-tip="Factor de seguridad del sistema. 1.25 = 25% extra. Recomendado mínimo 1.25.">?</span></label>
+          <input type="number" id="p-fs" value="1.25" step="0.05" oninput="calcAll()">
+        </div>
       </div>
       <div class="tbl-wrap">
         <table>
@@ -1730,7 +1738,7 @@ function togglePvgisChart(){
     const svgW = startX + __pvgisMonthly.length*(w+gap);
     box.innerHTML = `
       <div style="margin-top:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);padding:10px">
-        <div style="font-size:11.5px;color:var(--text2);margin-bottom:6px">Irradiación diaria por mes — H(i)_d (kWh/m²/día), plano inclinado óptimo</div>
+        <div style="font-size:11.5px;color:var(--text2);margin-bottom:6px">Irradiación solar diaria por mes (kWh/m² por día), con los paneles en su inclinación óptima</div>
         <svg viewBox="0 0 ${svgW} 150" width="100%" style="min-width:380px;display:block"><g>${bars}</g></svg>
       </div>`;
   } else {
@@ -1773,6 +1781,37 @@ async function buscarCiudadPVGIS(){
 /* ══════════════════════════════════════════════════════
    TABLA DE CARGAS
 ══════════════════════════════════════════════════════ */
+let __dragSrcIndex = null;
+
+function dragStartCarga(e, i){
+  __dragSrcIndex = i;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', String(i));
+  e.currentTarget.classList.add('dragging');
+}
+function dragOverCarga(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const tr = e.currentTarget;
+  tr.classList.add('drag-over');
+}
+function dragLeaveCarga(e){
+  e.currentTarget.classList.remove('drag-over');
+}
+function dropCarga(e, i){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(__dragSrcIndex === null || __dragSrcIndex === i) return;
+  const item = cargas.splice(__dragSrcIndex, 1)[0];
+  cargas.splice(i, 0, item);
+  __dragSrcIndex = null;
+  renderCargas();
+}
+function dragEndCarga(e){
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('#cargas-tbody tr.drag-over').forEach(el=>el.classList.remove('drag-over'));
+}
+
 function renderCargas(){
   const tb = document.getElementById('cargas-tbody');
   tb.innerHTML = cargas.map((c,i)=>{
@@ -1780,12 +1819,12 @@ function renderCargas(){
     const potIns  = c.qty*c.pot*(surge?4:1);
     const rowStyle= surge ? 'background:var(--amber-dim)' : '';
     return `
-    <tr style="${rowStyle}">
-      <td>${i+1}</td>
-      <td><input type="text" style="width:150px" value="${c.desc.replace(/"/g,'&quot;')}" onchange="cargas[${i}].desc=this.value;renderCargas()"></td>
-      <td class="c"><input type="number" class="w60" value="${c.qty}" min="1" onchange="cargas[${i}].qty=+this.value||1;renderCargas()"></td>
-      <td class="r"><input type="number" class="w80" value="${c.pot}" min="0" step="1" onchange="cargas[${i}].pot=+this.value||0;renderCargas()"></td>
-      <td class="c"><input type="number" class="w60" value="${c.hrs}" min="0" step="0.25" onchange="cargas[${i}].hrs=+this.value||0;renderCargas()"></td>
+    <tr style="${rowStyle}" draggable="true" ondragstart="dragStartCarga(event,${i})" ondragover="dragOverCarga(event)" ondragleave="dragLeaveCarga(event)" ondrop="dropCarga(event,${i})" ondragend="dragEndCarga(event)">
+      <td class="drag-handle" title="Arrastra para reordenar"><span class="drag-grip">⠿</span> ${i+1}</td>
+      <td><input type="text" style="width:150px" value="${c.desc.replace(/"/g,'&quot;')}" draggable="false" onchange="cargas[${i}].desc=this.value;renderCargas()"></td>
+      <td class="c"><input type="number" class="w60" value="${c.qty}" min="1" draggable="false" onchange="cargas[${i}].qty=+this.value||1;renderCargas()"></td>
+      <td class="r"><input type="number" class="w80" value="${c.pot}" min="0" step="1" draggable="false" onchange="cargas[${i}].pot=+this.value||0;renderCargas()"></td>
+      <td class="c"><input type="number" class="w60" value="${c.hrs}" min="0" step="0.25" draggable="false" onchange="cargas[${i}].hrs=+this.value||0;renderCargas()"></td>
       <td class="r"><strong>${f0(c.qty*c.pot*c.hrs)}</strong></td>
       <td class="r" style="${surge?'color:var(--amber);font-weight:700':''}">${f0(potIns)}${surge?' <span style="font-size:9px">(×4)</span>':''}</td>
       <td class="c"><button class="btn btn-sm ${surge?'':'btn-secondary'}" style="${surge?'background:var(--amber);color:#fff':''}" title="Marca esta carga como motor/electrodoméstico de arranque pesado (×4 potencia instalada)" onclick="cargas[${i}].surge=!cargas[${i}].surge;renderCargas()">⚡ ×4</button></td>
