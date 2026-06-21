@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <style>
 /* ═══════════════════════════════════════════ TOKENS — Blanco + gris grafito (serio/profesional) */
 :root {
@@ -451,11 +453,11 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         </div>
         <div class="field">
           <label>Latitud (°) <span class="tip" data-tip="Latitud geográfica del sitio. Cúcuta ≈ 7.9°, Bogotá ≈ 4.6°, Medellín ≈ 6.2°">?</span></label>
-          <input type="number" id="p-lat" value="7.9" step="0.01" oninput="calcAll()">
+          <input type="number" id="p-lat" value="7.9" step="0.01" oninput="calcAll();syncPvgisMapFromInputs()">
         </div>
         <div class="field">
           <label>Longitud (°) <span class="tip" data-tip="Longitud geográfica del sitio. Cúcuta ≈ -72.5°, Bogotá ≈ -74.1°, Medellín ≈ -75.6°">?</span></label>
-          <input type="number" id="p-lon" value="-72.5" step="0.01">
+          <input type="number" id="p-lon" value="-72.5" step="0.01" oninput="syncPvgisMapFromInputs()">
         </div>
         <div class="field">
           <label>HSP (h pico/día) <span class="tip" data-tip="Horas de Sol Pico del sitio. Norte de Colombia: 4.0–5.5. Se calcula automáticamente desde PVGIS usando el mes más desfavorable, o puedes ingresarlo manualmente.">?</span></label>
@@ -472,6 +474,13 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5">
           Consulta directa a la base de datos satelital de la Comisión Europea (PVGIS) usando la latitud/longitud del proyecto. Calcula el ángulo óptimo de los paneles y toma el <strong>mes más desfavorable</strong> (menor irradiación del año) como HSP de diseño — así el sistema queda dimensionado incluso para el peor mes, no solo el promedio.
         </div>
+        <div style="font-size:11.5px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px 12px;margin-bottom:12px;line-height:1.6">
+          <strong>¿Cómo usarla?</strong><br>
+          1. Mueve el pin en el mapa hasta el sitio del proyecto (o escribe lat/lon directamente arriba — por defecto trae las coordenadas de Cúcuta de ejemplo, cámbialas por las reales).<br>
+          2. Pulsa "Consultar PVGIS con lat/lon". El HSP y el ángulo óptimo se cargan solos.<br>
+          3. Si falla la conexión, usa "Ingresar manual" como respaldo.
+        </div>
+        <div id="pvgis-map" style="height:220px;border-radius:var(--radius-xs);border:1px solid var(--border);margin-bottom:12px"></div>
         <div class="field-row">
           <div class="field" style="flex:0 0 auto;align-self:flex-end">
             <button class="btn btn-primary" onclick="calcHSPdesdePVGIS()" id="pvgis-btn">🛰️ Consultar PVGIS con lat/lon →</button>
@@ -479,7 +488,11 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
           <div class="field" style="flex:0 0 auto;align-self:flex-end">
             <button class="btn btn-ghost" onclick="togglePvgisManual()" id="pvgis-manual-toggle" type="button">Ingresar manual</button>
           </div>
+          <div class="field" style="flex:0 0 auto;align-self:flex-end;display:none" id="pvgis-chart-toggle">
+            <button class="btn btn-ghost" onclick="togglePvgisChart()" type="button">+ Ver gráficas</button>
+          </div>
         </div>
+        <div id="pvgis-chart-box"></div>
         <div id="pvgis-manual-box" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
           <div style="font-size:12px;color:var(--text2);margin-bottom:8px">
             Si prefieres no usar la consulta automática (sin internet, o quieres verificar contra el mapa visual), puedes ingresar el dato manualmente desde <a href="https://re.jrc.ec.europa.eu/pvg_tools/es/" target="_blank" rel="noopener" style="color:var(--green)">PVGIS — herramienta visual</a>: toma la irradiación (kWh/m²) del mes más bajo y los días de ese mes.
@@ -703,6 +716,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         </div>
       </div>
       <div id="bat-results"></div>
+      <div id="bat-diagram" style="margin-top:6px"></div>
       <div class="alert alert-info" style="margin:8px 0"><span class="alert-icon">💡</span><div style="font-size:11px">Haz clic en una fila de la tabla para elegir esa capacidad de batería. Por defecto se selecciona automáticamente la opción más eficiente (menor cantidad de baterías).</div></div>
       <div class="formula-box" id="bat-formula">Configura las baterías para ver el cálculo…</div>
     </div>
@@ -1525,6 +1539,7 @@ function showSection(id){
     el.classList.toggle('active', el.getAttribute('onclick')?.includes(id));
   });
   window.scrollTo({top:0, behavior:'instant'});
+  if(id==='s-calc')         setTimeout(()=>{ if(__pvgisMap) __pvgisMap.invalidateSize(); }, 50);
   if(id==='s-paneles-cat')   renderPanelCatalog();
   if(id==='s-inv-cat')       renderInvCatalog();
   if(id==='s-bat-cat')       renderBatCatalog();
@@ -1559,9 +1574,65 @@ function setMode(m){
    Llama a PVcalc con optimalangles=1, toma el mes con
    menor H(i)_d (irradiación en plano inclinado) del año.
 ══════════════════════════════════════════════════════ */
+let __pvgisMap = null, __pvgisMarker = null;
+
+function initPvgisMap(){
+  const mapEl = document.getElementById('pvgis-map');
+  if(!mapEl || typeof L === 'undefined' || __pvgisMap) return;
+  const lat = +document.getElementById('p-lat').value || 7.9;
+  const lon = +document.getElementById('p-lon').value || -72.5;
+  __pvgisMap = L.map('pvgis-map').setView([lat, lon], 9);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap', maxZoom: 18
+  }).addTo(__pvgisMap);
+  __pvgisMarker = L.marker([lat, lon], {draggable:true}).addTo(__pvgisMap);
+  __pvgisMarker.on('dragend', e => {
+    const p = e.target.getLatLng();
+    document.getElementById('p-lat').value = Math.round(p.lat*10000)/10000;
+    document.getElementById('p-lon').value = Math.round(p.lng*10000)/10000;
+    calcAll();
+  });
+  __pvgisMap.on('click', e => {
+    __pvgisMarker.setLatLng(e.latlng);
+    document.getElementById('p-lat').value = Math.round(e.latlng.lat*10000)/10000;
+    document.getElementById('p-lon').value = Math.round(e.latlng.lng*10000)/10000;
+    calcAll();
+  });
+}
+
+function syncPvgisMapFromInputs(){
+  if(!__pvgisMap || !__pvgisMarker) return;
+  const lat = +document.getElementById('p-lat').value;
+  const lon = +document.getElementById('p-lon').value;
+  if(!lat || !lon) return;
+  __pvgisMarker.setLatLng([lat, lon]);
+  __pvgisMap.setView([lat, lon], __pvgisMap.getZoom());
+}
+
 function togglePvgisManual(){
   const box = document.getElementById('pvgis-manual-box');
   box.style.display = box.style.display === 'none' ? '' : 'none';
+}
+
+let __pvgisMonthly = null;
+
+async function fetchPVGIS(url){
+  // PVGIS (re.jrc.ec.europa.eu) no envía cabeceras CORS para fetch desde el navegador,
+  // así que se prueba primero directo y, si falla, se usa un proxy CORS público de respaldo.
+  const intentos = [
+    url,
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+    'https://corsproxy.io/?url=' + encodeURIComponent(url)
+  ];
+  let lastErr;
+  for(const u of intentos){
+    try{
+      const resp = await fetch(u);
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      return await resp.json();
+    }catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error('No se pudo conectar');
 }
 
 async function calcHSPdesdePVGIS(){
@@ -1571,7 +1642,7 @@ async function calcHSPdesdePVGIS(){
   const btn = document.getElementById('pvgis-btn');
 
   if(!lat || !lon){
-    out.innerHTML = '⚠️ Ingresa latitud y longitud del sitio (campos arriba) antes de consultar PVGIS.';
+    out.innerHTML = '⚠️ Ingresa latitud y longitud del sitio (campos arriba o seleccionando el punto en el mapa) antes de consultar PVGIS.';
     return;
   }
 
@@ -1580,16 +1651,15 @@ async function calcHSPdesdePVGIS(){
   btn.disabled = true;
   btn.textContent = '🛰️ Consultando PVGIS…';
   out.innerHTML = 'Consultando la base de datos satelital de la Comisión Europea (PVGIS)…';
+  document.getElementById('pvgis-chart-box').innerHTML = '';
+  document.getElementById('pvgis-chart-toggle').style.display = 'none';
 
   try{
-    const resp = await fetch(url);
-    if(!resp.ok) throw new Error('HTTP ' + resp.status);
-    const data = await resp.json();
+    const data = await fetchPVGIS(url);
 
     const monthly = data?.outputs?.monthly?.fixed;
     if(!Array.isArray(monthly) || monthly.length === 0) throw new Error('Respuesta sin datos mensuales');
 
-    // H(i)_d = irradiación diaria media del mes en el plano inclinado óptimo (kWh/m²/día) ≈ HSP de ese mes
     const conHi = monthly.filter(m => typeof m['H(i)_d'] === 'number');
     if(conHi.length === 0) throw new Error('No se encontró H(i)_d en la respuesta');
 
@@ -1599,6 +1669,7 @@ async function calcHSPdesdePVGIS(){
                        ?? data?.outputs?.fixed?.[0]?.slope ?? null;
 
     document.getElementById('p-hsp').value = hspPeorMes;
+    __pvgisMonthly = conHi;
 
     const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     const nombreMes = meses[(peor.month||1) - 1] || `mes ${peor.month}`;
@@ -1607,6 +1678,8 @@ async function calcHSPdesdePVGIS(){
       + (anguloOptimo!=null ? ` · Ángulo óptimo PVGIS: <strong>${anguloOptimo}°</strong>` : '')
       + `. Dato satelital de PVGIS (re.jrc.ec.europa.eu), no estimado a mano.`;
 
+    document.getElementById('pvgis-chart-toggle').style.display = '';
+
     if(anguloOptimo!=null){
       const tiltEl = document.getElementById('tilt-val');
       if(tiltEl) tiltEl.textContent = anguloOptimo + '°';
@@ -1614,11 +1687,38 @@ async function calcHSPdesdePVGIS(){
 
     calcAll();
   }catch(err){
-    out.innerHTML = `⚠️ No se pudo consultar PVGIS automáticamente (${err.message}). Puedes usar "Ingresar manual" abajo como respaldo, o verificar tu conexión a internet.`;
+    out.innerHTML = `⚠️ No se pudo consultar PVGIS automáticamente (${err.message}). Esto puede pasar si los proxies de respaldo están temporalmente caídos. Usa "Ingresar manual" abajo, o intenta de nuevo en unos segundos.`;
     document.getElementById('pvgis-manual-box').style.display = '';
   }finally{
     btn.disabled = false;
     btn.textContent = '🛰️ Consultar PVGIS con lat/lon →';
+  }
+}
+
+function togglePvgisChart(){
+  const box = document.getElementById('pvgis-chart-box');
+  const willShow = box.innerHTML === '';
+  if(willShow && __pvgisMonthly){
+    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const max = Math.max(...__pvgisMonthly.map(m=>m['H(i)_d']));
+    const w=26, gap=10, baseH=120, startX=10;
+    let bars='';
+    __pvgisMonthly.forEach((m,i)=>{
+      const h = Math.round((m['H(i)_d']/max)*baseH);
+      const x = startX + i*(w+gap);
+      const y = baseH - h + 14;
+      bars += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="var(--accent)"/>
+        <text x="${x+w/2}" y="${baseH+28}" font-size="10" fill="var(--text2)" text-anchor="middle">${meses[(m.month||1)-1]}</text>
+        <text x="${x+w/2}" y="${y-4}" font-size="9.5" fill="var(--text2)" text-anchor="middle">${m['H(i)_d'].toFixed(1)}</text>`;
+    });
+    const svgW = startX + __pvgisMonthly.length*(w+gap);
+    box.innerHTML = `
+      <div style="margin-top:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);padding:10px">
+        <div style="font-size:11.5px;color:var(--text2);margin-bottom:6px">Irradiación diaria por mes — H(i)_d (kWh/m²/día), plano inclinado óptimo</div>
+        <svg viewBox="0 0 ${svgW} 150" width="100%" style="min-width:380px;display:block"><g>${bars}</g></svg>
+      </div>`;
+  } else {
+    box.innerHTML = '';
   }
 }
 
@@ -1870,6 +1970,7 @@ function calcAll(){
   const chosenAh  = (selectedBatAh!==null && batAhs.includes(selectedBatAh)) ? selectedBatAh : bestOpt.ah;
   const chosenOpt = batOptions.find(o=>o.ah===chosenAh) || bestOpt;
   window.__batChosen = chosenOpt; // usado por el resumen final
+  renderBatteryDiagram(chosenOpt, batV, batTipo);
 
   const batRows = batOptions.map(o=>{
     const sel = o.ah===chosenAh ? ' row-selected' : '';
@@ -2033,7 +2134,7 @@ function renderArrayDiagram(d){
     }
     const lastX = startX + (cols-1)*(pw+gx) + pw;
     const wy = y+ph/2;
-    const lineEndX = moreCols>0 ? lastX+58 : busX;
+    const lineEndX = moreCols>0 ? lastX+58 : lastX;
     if(moreCols>0){
       wires += `<line x1="${lastX}" y1="${wy}" x2="${lastX+30}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4" stroke-dasharray="3,3"/>
         <text x="${lastX+34}" y="${wy+4}" font-size="10.5" fill="var(--text2)">+${moreCols} más</text>`;
@@ -2083,6 +2184,78 @@ function renderArrayDiagram(d){
       }
     </div>
     ${(d.invMppt!=null && rowsReal>d.invMppt) ? `<div style="margin-top:6px;font-size:11.5px;color:var(--amber)">⚠️ Tienes ${rowsReal} string(s) en paralelo independientes y el inversor solo tiene ${d.invMppt} MPPT — varios strings deberán combinarse en el mismo MPPT (usa combiner box o verifica que sea compatible).</div>` : ''}
+  `;
+}
+
+/* ══════════════════════════════════════════════════════
+   VISUALIZACIÓN DEL BANCO DE BATERÍAS — serie/paralelo
+══════════════════════════════════════════════════════ */
+function renderBatteryDiagram(opt, batV, batTipo){
+  const el = document.getElementById('bat-diagram');
+  if(!el || !opt || !opt.nb) { if(el) el.innerHTML=''; return; }
+
+  const vc = opt.vc;       // baterías en serie por string
+  const nb = opt.nb;       // strings en paralelo
+  const rows = Math.min(nb, 4);
+  const cols = Math.min(vc, 6);
+  const moreRows = nb - rows;
+  const moreCols = vc - cols;
+
+  const bw=36, bh=24, gx=14, gy=18;
+  const startX = 50, startY = 24;
+  const lastColX = startX + (cols-1)*(bw+gx) + bw;
+  const busX = (moreCols>0 ? lastColX+30+58 : lastColX+30);
+
+  let cells='', wires='', labels='';
+  for(let r=0;r<rows;r++){
+    const y = startY + r*(bh+gy);
+    for(let c=0;c<cols;c++){
+      const x = startX + c*(bw+gx);
+      cells += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="3" fill="var(--green)" opacity=".85" stroke="var(--ink)" stroke-width=".6"/>
+        <line x1="${x+6}" y1="${y+bh/2}" x2="${x+bw-6}" y2="${y+bh/2}" stroke="#fff" stroke-width=".6" opacity=".6"/>`;
+      if(c<cols-1){
+        const wy=y+bh/2;
+        wires += `<line x1="${x+bw}" y1="${wy}" x2="${x+bw+gx}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
+      }
+    }
+    const wy = y+bh/2;
+    if(moreCols>0){
+      wires += `<line x1="${lastColX}" y1="${wy}" x2="${lastColX+30}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4" stroke-dasharray="3,3"/>
+        <text x="${lastColX+34}" y="${wy+4}" font-size="10.5" fill="var(--text2)">+${moreCols} más</text>`;
+      wires += `<line x1="${lastColX+88}" y1="${wy}" x2="${busX}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
+    } else {
+      wires += `<line x1="${lastColX}" y1="${wy}" x2="${busX}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
+    }
+    labels += `<text x="${startX-8}" y="${wy+4}" font-size="10.5" fill="var(--text2)" text-anchor="end">B${r+1}</text>`;
+  }
+  if(moreRows>0){
+    const y = startY + rows*(bh+gy) - gy + 14;
+    labels += `<text x="${startX}" y="${y}" font-size="11.5" fill="var(--text2)" font-style="italic">+ ${moreRows} string(s) más en paralelo →</text>`;
+  }
+
+  const busTop = startY + bh/2;
+  const busBottom = startY + (rows-1)*(bh+gy) + bh/2;
+  const invX = busX + 30, invY = (busTop+busBottom)/2 - 22, invW = 84, invH = 44;
+  const svgH = Math.max(120, startY + rows*(bh+gy) + (moreRows>0?26:0));
+  const svgW = invX + invW + 16;
+
+  el.innerHTML = `
+    <div class="card-title" style="margin-bottom:6px"><span>🔋</span> Visualización del banco de baterías (${batTipo.toUpperCase()} ${batV}V)</div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);padding:8px">
+      <svg viewBox="0 0 ${svgW} ${svgH}" width="100%" style="min-width:420px;display:block">
+        ${cells}${wires}${labels}
+        <line x1="${busX}" y1="${busTop}" x2="${busX}" y2="${busBottom}" stroke="var(--ink2)" stroke-width="1.6"/>
+        <line x1="${busX}" y1="${(busTop+busBottom)/2}" x2="${invX}" y2="${(busTop+busBottom)/2}" stroke="var(--ink2)" stroke-width="1.6"/>
+        <rect x="${invX}" y="${invY}" width="${invW}" height="${invH}" rx="6" fill="var(--bg3)" stroke="var(--border2)" stroke-width="1.4"/>
+        <text x="${invX+invW/2}" y="${invY+18}" font-size="11" font-weight="700" fill="var(--text)" text-anchor="middle">Inversor</text>
+        <text x="${invX+invW/2}" y="${invY+32}" font-size="9.5" fill="var(--text2)" text-anchor="middle">/ Cargador</text>
+      </svg>
+    </div>
+    <div class="g3" style="margin-top:10px;gap:8px">
+      <div class="stat"><div class="stat-label">Total baterías</div><div class="stat-val">${opt.nbTotal}</div><div class="stat-unit">${nb} string(s) × ${vc} en serie</div></div>
+      <div class="stat"><div class="stat-label">Capacidad por string</div><div class="stat-val">${opt.ah}</div><div class="stat-unit">Ah</div></div>
+      <div class="stat green"><div class="stat-label">Energía total banco</div><div class="stat-val">${f0(opt.energiaWh)}</div><div class="stat-unit">Wh</div></div>
+    </div>
   `;
 }
 
@@ -3068,10 +3241,31 @@ Responde en español, de forma clara y estructurada. Usa listas cuando sea útil
 /* ══════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════ */
+function wrapFormulaBoxes(){
+  document.querySelectorAll('.formula-box').forEach(box=>{
+    if(box.dataset.wrapped) return;
+    box.dataset.wrapped = '1';
+    box.style.display = 'none';
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-ghost btn-sm';
+    btn.type = 'button';
+    btn.textContent = '+ Ver fórmula';
+    btn.style.marginBottom = '6px';
+    btn.onclick = () => {
+      const show = box.style.display === 'none';
+      box.style.display = show ? '' : 'none';
+      btn.textContent = show ? '− Ocultar fórmula' : '+ Ver fórmula';
+    };
+    box.parentNode.insertBefore(btn, box);
+  });
+}
+
 document.getElementById('p-fecha').value = new Date().toISOString().split('T')[0];
 populateSelects();
 renderCargas();
 calcAire();
+setTimeout(initPvgisMap, 100);
+wrapFormulaBoxes();
 </script>
 </body>
 </html>
