@@ -452,21 +452,10 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
           <input type="date" id="p-fecha">
         </div>
         <div class="field">
-          <label>Latitud (°) <span class="tip" data-tip="Latitud geográfica del sitio. Cúcuta ≈ 7.9°, Bogotá ≈ 4.6°, Medellín ≈ 6.2°">?</span></label>
-          <input type="number" id="p-lat" value="7.9" step="0.01" oninput="calcAll();syncPvgisMapFromInputs()">
-        </div>
-        <div class="field">
-          <label>Longitud (°) <span class="tip" data-tip="Longitud geográfica del sitio. Cúcuta ≈ -72.5°, Bogotá ≈ -74.1°, Medellín ≈ -75.6°">?</span></label>
-          <input type="number" id="p-lon" value="-72.5" step="0.01" oninput="syncPvgisMapFromInputs()">
-        </div>
-        <div class="field">
-          <label>HSP (h pico/día) <span class="tip" data-tip="Horas de Sol Pico del sitio. Norte de Colombia: 4.0–5.5. Se calcula automáticamente desde PVGIS usando el mes más desfavorable, o puedes ingresarlo manualmente.">?</span></label>
-          <input type="number" id="p-hsp" value="4.5" step="0.1" oninput="calcAll()">
-        </div>
-        <div class="field">
           <label>Factor seguridad <span class="tip" data-tip="Factor de seguridad del sistema. 1.25 = 25% extra. Recomendado mínimo 1.25.">?</span></label>
           <input type="number" id="p-fs" value="1.25" step="0.05" oninput="calcAll()">
         </div>
+        <input type="hidden" id="p-hsp" value="4.5" oninput="calcAll()">
       </div>
 
       <div class="card-sm" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-top:6px">
@@ -476,11 +465,36 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         </div>
         <div style="font-size:11.5px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px 12px;margin-bottom:12px;line-height:1.6">
           <strong>¿Cómo usarla?</strong><br>
-          1. Mueve el pin en el mapa hasta el sitio del proyecto (o escribe lat/lon directamente arriba — por defecto trae las coordenadas de Cúcuta de ejemplo, cámbialas por las reales).<br>
-          2. Pulsa "Consultar PVGIS con lat/lon". El HSP y el ángulo óptimo se cargan solos.<br>
-          3. Si falla la conexión, usa "Ingresar manual" como respaldo.
+          1. Mueve el pin en el mapa hasta el sitio del proyecto, o usa el buscador / coordenadas debajo del mapa (botón "Ingresar manual").<br>
+          2. Pulsa "Consultar PVGIS con lat/lon". El HSP, el mes más desfavorable y el ángulo óptimo se cargan solos abajo.<br>
+          3. Pulsa "+ Ver gráficas" si quieres ver el detalle mes a mes.
         </div>
         <div id="pvgis-map" style="height:220px;border-radius:var(--radius-xs);border:1px solid var(--border);margin-bottom:12px"></div>
+
+        <div id="pvgis-manual-box" style="display:none;margin-bottom:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-xs);padding:12px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:10px">📍 Ubicación manual</div>
+          <div class="field-row">
+            <div class="field" style="flex:2">
+              <label>Buscar por nombre de ciudad</label>
+              <input type="text" id="pvgis-city-search" placeholder="Ej: Cúcuta, Colombia" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarCiudadPVGIS();}">
+            </div>
+            <div class="field" style="flex:0 0 auto;align-self:flex-end">
+              <button class="btn btn-ghost" onclick="buscarCiudadPVGIS()" type="button" id="pvgis-city-btn">🔎 Buscar</button>
+            </div>
+          </div>
+          <div id="pvgis-city-result" style="font-size:11.5px;color:var(--text2);margin:6px 0 10px"></div>
+          <div class="field-row">
+            <div class="field">
+              <label>Latitud (°) <span class="tip" data-tip="Latitud geográfica del sitio. Cúcuta ≈ 7.9°, Bogotá ≈ 4.6°, Medellín ≈ 6.2°">?</span></label>
+              <input type="number" id="p-lat" value="7.9" step="0.0001" oninput="calcAll();syncPvgisMapFromInputs()">
+            </div>
+            <div class="field">
+              <label>Longitud (°) <span class="tip" data-tip="Longitud geográfica del sitio. Cúcuta ≈ -72.5°, Bogotá ≈ -74.1°, Medellín ≈ -75.6°">?</span></label>
+              <input type="number" id="p-lon" value="-72.5" step="0.0001" oninput="syncPvgisMapFromInputs()">
+            </div>
+          </div>
+        </div>
+
         <div class="field-row">
           <div class="field" style="flex:0 0 auto;align-self:flex-end">
             <button class="btn btn-primary" onclick="calcHSPdesdePVGIS()" id="pvgis-btn">🛰️ Consultar PVGIS con lat/lon →</button>
@@ -493,28 +507,22 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
           </div>
         </div>
         <div id="pvgis-chart-box"></div>
-        <div id="pvgis-manual-box" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
-          <div style="font-size:12px;color:var(--text2);margin-bottom:8px">
-            Si prefieres no usar la consulta automática (sin internet, o quieres verificar contra el mapa visual), puedes ingresar el dato manualmente desde <a href="https://re.jrc.ec.europa.eu/pvg_tools/es/" target="_blank" rel="noopener" style="color:var(--green)">PVGIS — herramienta visual</a>: toma la irradiación (kWh/m²) del mes más bajo y los días de ese mes.
-          </div>
-          <div class="field-row">
-            <div class="field">
-              <label>Irradiación mes más bajo (kWh/m²/mes)</label>
-              <input type="number" id="pvgis-irrad" placeholder="Ej: 130.64" step="0.01">
-            </div>
-            <div class="field">
-              <label>Días del mes</label>
-              <input type="number" id="pvgis-dias" value="30" step="1">
-            </div>
-            <div class="field" style="flex:0 0 auto;align-self:flex-end">
-              <button class="btn btn-ghost" onclick="calcHSPManual()">Calcular HSP →</button>
-            </div>
-          </div>
-        </div>
         <div id="pvgis-result" style="font-size:12px;color:var(--text2);margin-top:10px"></div>
       </div>
 
-      <div class="g3" style="margin-top:10px">
+      <div class="g4" style="margin-top:10px">
+        <div class="stat amber" style="grid-column:span 1">
+          <div class="stat-label">HSP de diseño (PVGIS)</div>
+          <div class="stat-val" id="hsp-val">—</div>
+          <div class="stat-unit">h pico/día, mes más desfavorable</div>
+          <div class="stat-formula" id="hsp-formula">Pulsa "Consultar PVGIS"</div>
+        </div>
+        <div class="stat purple" style="grid-column:span 1">
+          <div class="stat-label">Mes más desfavorable</div>
+          <div class="stat-val" id="mes-val" style="font-size:20px">—</div>
+          <div class="stat-unit">menor irradiación del año</div>
+          <div class="stat-formula" id="mes-formula">Fuente: PVGIS (re.jrc.ec.europa.eu)</div>
+        </div>
         <div class="stat green" style="grid-column:span 1">
           <div class="stat-label">Inclinación óptima de paneles (PVGIS)</div>
           <div class="stat-val" id="tilt-val">—</div>
@@ -1674,20 +1682,28 @@ async function calcHSPdesdePVGIS(){
     const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     const nombreMes = meses[(peor.month||1) - 1] || `mes ${peor.month}`;
 
-    out.innerHTML = `✅ <strong>HSP real cargado: ${hspPeorMes} h pico/día</strong> (mes más desfavorable: ${nombreMes})`
-      + (anguloOptimo!=null ? ` · Ángulo óptimo PVGIS: <strong>${anguloOptimo}°</strong>` : '')
-      + `. Dato satelital de PVGIS (re.jrc.ec.europa.eu), no estimado a mano.`;
+    out.innerHTML = `✅ Dato satelital de PVGIS (re.jrc.ec.europa.eu), no estimado a mano.`;
 
     document.getElementById('pvgis-chart-toggle').style.display = '';
+
+    const hspEl = document.getElementById('hsp-val');
+    if(hspEl) hspEl.textContent = hspPeorMes;
+    const hspFormulaEl = document.getElementById('hsp-formula');
+    if(hspFormulaEl) hspFormulaEl.textContent = `H(i)_d más bajo del año, plano inclinado óptimo`;
+
+    const mesEl = document.getElementById('mes-val');
+    if(mesEl) mesEl.textContent = nombreMes;
 
     if(anguloOptimo!=null){
       const tiltEl = document.getElementById('tilt-val');
       if(tiltEl) tiltEl.textContent = anguloOptimo + '°';
+      const tiltFormulaEl = document.getElementById('tilt-formula');
+      if(tiltFormulaEl) tiltFormulaEl.textContent = 'Ángulo óptimo calculado por PVGIS';
     }
 
     calcAll();
   }catch(err){
-    out.innerHTML = `⚠️ No se pudo consultar PVGIS automáticamente (${err.message}). Esto puede pasar si los proxies de respaldo están temporalmente caídos. Usa "Ingresar manual" abajo, o intenta de nuevo en unos segundos.`;
+    out.innerHTML = `⚠️ No se pudo consultar PVGIS automáticamente (${err.message}). Esto puede pasar si los proxies de respaldo están temporalmente caídos. Usa "Ingresar manual" abajo para verificar las coordenadas, o intenta de nuevo en unos segundos.`;
     document.getElementById('pvgis-manual-box').style.display = '';
   }finally{
     btn.disabled = false;
@@ -1722,18 +1738,36 @@ function togglePvgisChart(){
   }
 }
 
-function calcHSPManual(){
-  const irrad = +document.getElementById('pvgis-irrad').value;
-  const dias  = +document.getElementById('pvgis-dias').value || 30;
-  const out   = document.getElementById('pvgis-result');
-  if(!irrad || irrad<=0){
-    out.innerHTML = '⚠️ Ingresa el valor de irradiación del mes más bajo (lo sacas de la gráfica mensual de PVGIS).';
+async function buscarCiudadPVGIS(){
+  const q = document.getElementById('pvgis-city-search').value.trim();
+  const out = document.getElementById('pvgis-city-result');
+  const btn = document.getElementById('pvgis-city-btn');
+  if(!q){
+    out.innerHTML = '⚠️ Escribe el nombre de una ciudad (ej: "Cúcuta, Colombia").';
     return;
   }
-  const hsp = irrad / dias;
-  document.getElementById('p-hsp').value = Math.round(hsp*100)/100;
-  out.innerHTML = `✅ HSP calculado manualmente: <strong>${irrad} ÷ ${dias} = ${(Math.round(hsp*100)/100)} h pico/día</strong> — ya se cargó en el campo HSP.`;
-  calcAll();
+  btn.disabled = true;
+  btn.textContent = 'Buscando…';
+  out.innerHTML = 'Buscando ubicación…';
+  try{
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
+    const resp = await fetch(url, { headers: { 'Accept':'application/json' } });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if(!Array.isArray(data) || data.length === 0) throw new Error('Sin resultados');
+    const lat = Math.round(+data[0].lat*10000)/10000;
+    const lon = Math.round(+data[0].lon*10000)/10000;
+    document.getElementById('p-lat').value = lat;
+    document.getElementById('p-lon').value = lon;
+    syncPvgisMapFromInputs();
+    calcAll();
+    out.innerHTML = `✅ Encontrado: <strong>${data[0].display_name}</strong> (${lat}, ${lon}). Pulsa "Consultar PVGIS" para traer el HSP real.`;
+  }catch(err){
+    out.innerHTML = `⚠️ No se encontró esa ciudad (${err.message}). Intenta con un nombre más específico o mueve el pin directamente en el mapa.`;
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '🔎 Buscar';
+  }
 }
 
 /* ══════════════════════════════════════════════════════
