@@ -618,6 +618,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         </div>
         <div id="panel-results"></div>
       </div>
+      <div id="array-diagram" style="margin-top:14px"></div>
       <div class="formula-box" id="panel-formula">Ingresa cargas para ver el cálculo de paneles…</div>
     </div>
 
@@ -1834,6 +1835,15 @@ function calcAll(){
 \n<div class="f-step">Protección baterías (DC):</div>  ${f0(potFSW)} W ÷ ${vbat} V = ${f2(batProt)} A → Breaker <span class="f-res">${nextBreakerDown(batProt)} A ↓ (por debajo)</span>
 \n<div class="f-step">Protección inversor (AC):</div>  ${f0(potFSW)} W ÷ 120 V = ${f2(acProt)} A → Breaker <span class="f-res">${nextBreakerDown(acProt)} A ↓ (por debajo)</span>`;
 
+  // VISUALIZACIÓN DE ARREGLO (cadenas serie/paralelo) + compatibilidad con inversor
+  const invSelId  = document.getElementById('inv-sel').value;
+  const invObj    = (typeof DB!=='undefined' && DB.inversores) ? DB.inversores.find(x=>x.id===invSelId) : null;
+  renderArrayDiagram({
+    nPanelR, panSer, panPar, panWp, panVoc, panVmpp, panIsc,
+    vocFS, iscFS, fs,
+    invPot, invVdc: invObj ? invObj.vdc : null, invMppt: invObj ? invObj.mppt : null, invOk
+  });
+
   // BATERÍAS
   const batTipo  = document.getElementById('bat-tipo').value;
   const batDias  = +document.getElementById('bat-dias').value||1;
@@ -1986,6 +1996,94 @@ function calcAll(){
     </div>
   `;
   updateSidebar();
+}
+
+/* ══════════════════════════════════════════════════════
+   VISUALIZACIÓN DE ARREGLO — cadenas serie/paralelo
+   y validación de compatibilidad con el inversor
+══════════════════════════════════════════════════════ */
+function renderArrayDiagram(d){
+  const el = document.getElementById('array-diagram');
+  if(!el) return;
+  if(!d.nPanelR || d.nPanelR<=0){ el.innerHTML=''; return; }
+
+  const rowsReal = Math.max(1, d.panPar||1);
+  const colsReal = Math.max(1, d.panSer||1);
+  const rows = Math.min(rowsReal, 4);
+  const cols = Math.min(colsReal, 6);
+  const moreRows = rowsReal - rows;
+  const moreCols = colsReal - cols;
+
+  const pw=42, ph=27, gx=16, gy=20;
+  const startX = 56, startY = 26;
+  const busX = startX + cols*(pw+gx) - gx + 30 + (moreCols>0?70:0);
+
+  let panels='', wires='', rowLabels='';
+  for(let r=0;r<rows;r++){
+    const y = startY + r*(ph+gy);
+    for(let c=0;c<cols;c++){
+      const x = startX + c*(pw+gx);
+      panels += `<rect x="${x}" y="${y}" width="${pw}" height="${ph}" rx="3" fill="var(--accent)" opacity=".88" stroke="var(--ink)" stroke-width=".6"/>
+        <line x1="${x+5}" y1="${y+ph/2}" x2="${x+pw-5}" y2="${y+ph/2}" stroke="#fff" stroke-width=".6" opacity=".5"/>
+        <line x1="${x+pw/2}" y1="${y+4}" x2="${x+pw/2}" y2="${y+ph-4}" stroke="#fff" stroke-width=".6" opacity=".5"/>`;
+      if(c<cols-1){
+        const wy=y+ph/2;
+        wires += `<line x1="${x+pw}" y1="${wy}" x2="${x+pw+gx}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
+      }
+    }
+    const lastX = startX + (cols-1)*(pw+gx) + pw;
+    const wy = y+ph/2;
+    const lineEndX = moreCols>0 ? lastX+58 : busX;
+    if(moreCols>0){
+      wires += `<line x1="${lastX}" y1="${wy}" x2="${lastX+30}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4" stroke-dasharray="3,3"/>
+        <text x="${lastX+34}" y="${wy+4}" font-size="10.5" fill="var(--text2)">+${moreCols} más</text>`;
+    }
+    wires += `<line x1="${lineEndX}" y1="${wy}" x2="${busX}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
+    rowLabels += `<text x="${startX-8}" y="${wy+4}" font-size="10.5" fill="var(--text2)" text-anchor="end">S${r+1}</text>`;
+  }
+  if(moreRows>0){
+    const y = startY + rows*(ph+gy) - gy + 14;
+    rowLabels += `<text x="${startX}" y="${y}" font-size="11.5" fill="var(--text2)" font-style="italic">+ ${moreRows} string(s) más en paralelo →</text>`;
+  }
+
+  const busTop = startY + ph/2;
+  const busBottom = startY + (rows-1)*(ph+gy) + ph/2;
+  const invX = busX + 46, invY = (busTop+busBottom)/2 - 24, invW = 90, invH = 48;
+
+  const vocOk  = (d.invVdc!=null) ? d.vocFS <= d.invVdc : null;
+  const compatColor = vocOk===null ? 'var(--text2)' : (vocOk ? 'var(--green)' : 'var(--red)');
+  const compatBg     = vocOk===null ? 'var(--bg3)' : (vocOk ? 'var(--green-dim)' : 'var(--red-dim)');
+
+  const svgH = Math.max(140, startY + rows*(ph+gy) + (moreRows>0?26:0));
+  const svgW = invX + invW + 16;
+
+  el.innerHTML = `
+    <div class="card-title" style="margin-bottom:6px"><span>📐</span> Visualización del arreglo (cadenas serie/paralelo)</div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);padding:8px">
+      <svg viewBox="0 0 ${svgW} ${svgH}" width="100%" style="min-width:480px;display:block">
+        ${panels}${wires}${rowLabels}
+        <line x1="${busX}" y1="${busTop}" x2="${busX}" y2="${busBottom}" stroke="var(--ink2)" stroke-width="1.6"/>
+        <line x1="${busX}" y1="${(busTop+busBottom)/2}" x2="${invX}" y2="${(busTop+busBottom)/2}" stroke="var(--ink2)" stroke-width="1.6"/>
+        <rect x="${invX}" y="${invY}" width="${invW}" height="${invH}" rx="6" fill="${vocOk===false?'var(--red-dim)':'var(--bg3)'}" stroke="${vocOk===false?'var(--red)':'var(--border2)'}" stroke-width="1.4"/>
+        <text x="${invX+invW/2}" y="${invY+20}" font-size="11.5" font-weight="700" fill="var(--text)" text-anchor="middle">Inversor</text>
+        <text x="${invX+invW/2}" y="${invY+34}" font-size="10" fill="var(--text2)" text-anchor="middle">${d.invPot?d.invPot+'W':'—'}</text>
+      </svg>
+    </div>
+    <div class="g3" style="margin-top:10px;gap:8px">
+      <div class="stat"><div class="stat-label">Total paneles</div><div class="stat-val">${d.nPanelR}</div><div class="stat-unit">${rowsReal} string(s) × ${colsReal} en serie</div></div>
+      <div class="stat"><div class="stat-label">VOC string × F.S.</div><div class="stat-val">${f2(d.vocFS)}</div><div class="stat-unit">V</div></div>
+      <div class="stat"><div class="stat-label">ISC paralelo × F.S.</div><div class="stat-val">${f2(d.iscFS)}</div><div class="stat-unit">A</div></div>
+    </div>
+    <div style="margin-top:8px;background:${compatBg};border:1px solid ${compatColor};border-radius:var(--radius-sm);padding:10px 14px;font-size:12.5px;color:${compatColor};font-weight:600;display:flex;align-items:center;gap:8px">
+      ${vocOk===null
+        ? `<span>ℹ️</span><span>Selecciona un inversor del catálogo para validar compatibilidad de voltaje DC máximo.</span>`
+        : vocOk
+          ? `<span>✓</span><span>Compatible: VOC×F.S. (${f2(d.vocFS)}V) está dentro del límite DC del inversor (${d.invVdc}V máx).</span>`
+          : `<span>⚠️</span><span>Incompatible: VOC×F.S. (${f2(d.vocFS)}V) supera el máximo DC del inversor (${d.invVdc}V). Reduce paneles en serie o elige un inversor con mayor Vdc máx.</span>`
+      }
+    </div>
+    ${(d.invMppt!=null && rowsReal>d.invMppt) ? `<div style="margin-top:6px;font-size:11.5px;color:var(--amber)">⚠️ Tienes ${rowsReal} string(s) en paralelo independientes y el inversor solo tiene ${d.invMppt} MPPT — varios strings deberán combinarse en el mismo MPPT (usa combiner box o verifica que sea compatible).</div>` : ''}
+  `;
 }
 
 /* ══════════════════════════════════════════════════════
