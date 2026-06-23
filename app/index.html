@@ -247,8 +247,12 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 .tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--bg4);border:1px solid var(--border);color:var(--text3);font-size:9px;cursor:help;font-weight:700;margin-left:4px;position:relative}
 .tip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);color:var(--text);font-size:11px;padding:6px 10px;border-radius:6px;white-space:normal;max-width:250px;z-index:100;box-shadow:var(--shadow);font-weight:400}
 
-.auto-toggle{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--text2);font-weight:600;cursor:pointer;margin-bottom:12px;line-height:1.4}
-.auto-toggle input{width:auto;margin-top:2px;cursor:pointer}
+.auto-toggle{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:10px;padding:5px 10px 5px 6px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text2);transition:all .18s;user-select:none}
+.auto-toggle:has(input:checked){border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.auto-toggle input[type=checkbox]{display:none}
+.auto-toggle .chk{flex-shrink:0;width:15px;height:15px;border-radius:4px;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1}
+.auto-toggle:has(input:checked) .chk{background:var(--accent);border-color:var(--accent);color:#fff}
+.auto-toggle:has(input:checked) .chk::after{content:'✓';font-weight:900}
 
 .breakdown{background:var(--bg3);border-radius:var(--radius-sm);padding:12px 16px;margin-top:10px}
 .breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
@@ -611,7 +615,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             </select>
             <label class="auto-toggle">
               <input type="checkbox" id="panel-auto" checked onchange="toggleAutoPanel()">
-              🤖 Recomendación — elige el panel más práctico para el resultado
+              <span class="chk"></span> 🤖 Recomendación automática
             </label>
           </div>
           <div class="field-row">
@@ -665,7 +669,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             </select>
             <label class="auto-toggle">
               <input type="checkbox" id="inv-auto" checked onchange="toggleAutoInv()">
-              🤖 Recomendación — elige el inversor más práctico para el resultado
+              <span class="chk"></span> 🤖 Recomendación automática
             </label>
           </div>
           <div class="field-row">
@@ -696,7 +700,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
               </select>
               <label class="auto-toggle">
                 <input type="checkbox" id="vbat-auto" checked onchange="toggleAutoVbat(this.checked)">
-                🤖 Recomendación — según consumo Wh/día (0–2000→12V · 2000–4000→24V · 4000+→48V)
+                <span class="chk"></span> 🤖 Voltaje automático
               </label>
             </div>
           </div>
@@ -1948,11 +1952,29 @@ function calcAll(){
   const panIsc  = +document.getElementById('pan-isc').value ||14;
   const panVoc  = +document.getElementById('pan-voc').value ||49.9;
   const panVmpp = +document.getElementById('pan-vmpp').value||41.2;
-  const panPar  = +document.getElementById('pan-par').value ||1;
-  const panSer  = +document.getElementById('pan-ser').value ||1;
 
   const nPanel  = panWp > 0 ? ppico / panWp : 0;
   const nPanelR = Math.ceil(nPanel);
+
+  // Auto-distribuir serie/paralelo: en modo auto, calcular la mejor combinación
+  // que cumpla nPanelR sin superar el Vdc del inversor
+  const _invSelId0 = document.getElementById('inv-sel').value;
+  const _invObj0   = DB.inversores ? DB.inversores.find(x=>x.id===_invSelId0) : null;
+  const _vdcLim    = _invObj0 ? _invObj0.vdc : 500;
+  const maxSerAuto = panVoc > 0 ? Math.max(1, Math.floor(_vdcLim / (panVoc * fs))) : 1;
+  if(autoPanel && nPanelR > 0){
+    let bSer=1, bPar=nPanelR, bTotal=Infinity;
+    for(let s=1; s<=Math.min(maxSerAuto, nPanelR, 20); s++){
+      const p = Math.ceil(nPanelR/s);
+      const t = s*p;
+      if(t < bTotal || (t===bTotal && Math.abs(s-p)<Math.abs(bSer-bPar))){ bTotal=t; bSer=s; bPar=p; }
+    }
+    document.getElementById('pan-ser').value = bSer;
+    document.getElementById('pan-par').value = bPar;
+  }
+
+  const panPar  = +document.getElementById('pan-par').value ||1;
+  const panSer  = +document.getElementById('pan-ser').value ||1;
   const iscPar  = panIsc * panPar;
   const vocSer  = panVoc * panSer;
   const iscFS   = iscPar * fs;
@@ -2008,13 +2030,32 @@ function calcAll(){
 \n<div class="f-step">Protección baterías (DC):</div>  ${f0(potFSW)} W ÷ ${vbat} V = ${f2(batProt)} A → Breaker <span class="f-res">${nextBreakerDown(batProt)} A ↓ (por debajo)</span>
 \n<div class="f-step">Protección inversor (AC):</div>  ${f0(potFSW)} W ÷ 120 V = ${f2(acProt)} A → Breaker <span class="f-res">${nextBreakerDown(acProt)} A ↓ (por debajo)</span>`;
 
-  // VISUALIZACIÓN DE ARREGLO (cadenas serie/paralelo) + compatibilidad con inversor
-  const invSelId  = document.getElementById('inv-sel').value;
-  const invObj    = (typeof DB!=='undefined' && DB.inversores) ? DB.inversores.find(x=>x.id===invSelId) : null;
+  // VISUALIZACIÓN DE ARREGLO + alertas de compatibilidad cruzada
+  const invSelId = document.getElementById('inv-sel').value;
+  const invObj   = DB.inversores ? DB.inversores.find(x=>x.id===invSelId) : null;
+
+  const compAlerts = [];
+  if(invObj){
+    if(vocFS > invObj.vdc)
+      compAlerts.push({t:'err', m:`⚡ VOC×F.S. (${f2(vocFS)}V) supera el límite DC del inversor (${invObj.vdc}V). Reduce paneles en serie.`});
+    else if(vocFS > invObj.vdc*0.9)
+      compAlerts.push({t:'warn', m:`⚠️ VOC×F.S. (${f2(vocFS)}V) está muy cerca del límite DC (${invObj.vdc}V). Considera reducir 1 panel en serie.`});
+    if(invObj.vbat && invObj.vbat!=='none' && vbat!==invObj.vbat)
+      compAlerts.push({t:'err', m:`🔋 Incompatibilidad: inversor opera a ${invObj.vbat}V de batería pero el banco está en ${vbat}V.`});
+    if(invObj.vbat==='none')
+      compAlerts.push({t:'warn', m:`ℹ️ Inversor On-Grid sin soporte de batería. El banco de baterías no aplica.`});
+  }
+  const alertsHtml = compAlerts.length ? compAlerts.map(a=>`
+    <div style="margin-top:6px;padding:8px 12px;border-radius:6px;font-size:12px;font-weight:600;
+      background:${a.t==='err'?'var(--red-dim)':'var(--amber-dim)'};
+      border:1px solid ${a.t==='err'?'var(--red)':'var(--amber)'};
+      color:${a.t==='err'?'var(--red)':'var(--amber)'}">${a.m}</div>`).join('') : '';
+
   renderArrayDiagram({
-    nPanelR, panSer, panPar, panWp, panVoc, panVmpp, panIsc,
-    vocFS, iscFS, fs,
-    invPot, invVdc: invObj ? invObj.vdc : null, invMppt: invObj ? invObj.mppt : null, invOk
+    nPanelR, panSer, panPar, panWp,
+    vocFS, iscFS, invPot,
+    invVdc: invObj?invObj.vdc:null, invMppt: invObj?invObj.mppt:null,
+    alertsHtml
   });
 
   // BATERÍAS
@@ -2046,9 +2087,13 @@ function calcAll(){
   renderBatteryDiagram(chosenOpt, batV, batTipo);
 
   const batRows = batOptions.map(o=>{
-    const sel = o.ah===chosenAh ? ' row-selected' : '';
-    const tag = o.ah===bestOpt.ah ? ' <span class="auto-badge">recomendado</span>' : '';
-    return `<tr class="${sel.trim()}" onclick="selectBatRow(${o.ah})"><td>${o.ah} Ah${tag}</td><td class="c">${o.vc}</td><td class="r"><strong>${o.nb}</strong></td><td class="r">${o.nbTotal}</td><td class="r">${f0(o.energiaWh)} Wh</td></tr>`;
+    const sel     = o.ah===chosenAh ? ' row-selected' : '';
+    const isRec   = o.ah===bestOpt.ah;
+    const isChosen= o.ah===chosenAh;
+    const tag     = isRec ? ' <span class="auto-badge">recomendado</span>' : '';
+    const hidden  = (!isRec && !isChosen) ? 'display:none' : '';
+    const cls     = (!isRec && !isChosen) ? 'bat-extra' : '';
+    return `<tr class="${sel.trim()} ${cls}" style="${hidden}" onclick="selectBatRow(${o.ah})"><td>${o.ah} Ah${tag}</td><td class="c">${o.vc}</td><td class="r"><strong>${o.nb}</strong></td><td class="r">${o.nbTotal}</td><td class="r">${f0(o.energiaWh)} Wh</td></tr>`;
   }).join('');
 
   document.getElementById('bat-results').innerHTML = `
@@ -2063,6 +2108,7 @@ function calcAll(){
       <thead><tr><th>Capacidad</th><th class="c">En serie (${batV}V)</th><th class="r">Strings paralelo</th><th class="r">Total baterías</th><th class="r">Energía banco</th></tr></thead>
       <tbody>${batRows}</tbody>
     </table></div>
+    <button onclick="(function(b){var rs=document.querySelectorAll('.bat-extra');var open=b.textContent.startsWith('+');rs.forEach(r=>r.style.display=open?'':'none');b.textContent=open?'− Ocultar opciones':'+ Ver más opciones'})(this)" style="margin-top:6px;background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;padding:3px 0">+ Ver más opciones</button>
   `;
   document.getElementById('bat-formula').innerHTML = `
     <div class="f-step">1. Consumo a almacenar:</div>  ${f0(totCons)} Wh × ${batDias} días = <span class="f-res">${f0(consBat)} Wh</span>
@@ -2172,169 +2218,346 @@ function calcAll(){
   updateSidebar();
 }
 
+
 /* ══════════════════════════════════════════════════════
-   VISUALIZACIÓN DE ARREGLO — cadenas serie/paralelo
-   y validación de compatibilidad con el inversor
+   VISUALIZACIÓN DE ARREGLO — SVG interactivo rojo/negro
 ══════════════════════════════════════════════════════ */
 function renderArrayDiagram(d){
-  const el = document.getElementById('array-diagram');
+  const el=document.getElementById('array-diagram');
   if(!el) return;
-  if(!d.nPanelR || d.nPanelR<=0){ el.innerHTML=''; return; }
+  if(!d.nPanelR||d.nPanelR<=0){el.innerHTML='';return;}
 
-  const rowsReal = Math.max(1, d.panPar||1);
-  const colsReal = Math.max(1, d.panSer||1);
-  const rows = Math.min(rowsReal, 4);
-  const cols = Math.min(colsReal, 6);
-  const moreRows = rowsReal - rows;
-  const moreCols = colsReal - cols;
+  const rowsReal=Math.max(1,d.panPar||1), colsReal=Math.max(1,d.panSer||1);
+  const rows=Math.min(rowsReal,6), cols=Math.min(colsReal,8);
+  const moreRows=rowsReal-rows, moreCols=colsReal-cols;
+  const PW=58,PH=36,GX=14,GY=18,PAD=20,LW=28;
+  const sx=LW+PAD, sy=PAD+8;
+  const BUS_X=sx+cols*(PW+GX)-GX+(moreCols>0?52:0)+22;
+  const INV_W=82,INV_H=48;
+  const svgW=BUS_X+10+INV_W+14;
+  const svgH=Math.max(110,sy+rows*(PH+GY)-GY+PAD+(moreRows>0?20:0));
+  const invCY=sy+(rows*(PH+GY)-GY)/2;
+  const vocOk=d.invVdc!=null?d.vocFS<=d.invVdc:null;
+  const RED='#e53535',BLK='#1a1a1a',WIRE='#6B8FA8',PNL='#3D6B8C';
+  const ns='http://www.w3.org/2000/svg';
+  function px(c){return sx+c*(PW+GX);}
+  function py(r){return sy+r*(PH+GY);}
+  function mk(tag,attrs,txt){
+    const e=document.createElementNS(ns,tag);
+    Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));
+    if(txt!=null)e.textContent=txt;
+    return e;
+  }
+  const svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('viewBox','0 0 '+svgW+' '+svgH);
+  svg.setAttribute('width','100%');
+  svg.style.cssText='display:block;min-width:280px;overflow:visible;';
 
-  const pw=42, ph=27, gx=16, gy=20;
-  const startX = 56, startY = 26;
-  const busX = startX + cols*(pw+gx) - gx + 30 + (moreCols>0?70:0);
-
-  let panels='', wires='', rowLabels='';
+  // Conexiones serie y cables al bus
   for(let r=0;r<rows;r++){
-    const y = startY + r*(ph+gy);
-    for(let c=0;c<cols;c++){
-      const x = startX + c*(pw+gx);
-      panels += `<rect x="${x}" y="${y}" width="${pw}" height="${ph}" rx="3" fill="var(--accent)" opacity=".88" stroke="var(--ink)" stroke-width=".6"/>
-        <line x1="${x+5}" y1="${y+ph/2}" x2="${x+pw-5}" y2="${y+ph/2}" stroke="#fff" stroke-width=".6" opacity=".5"/>
-        <line x1="${x+pw/2}" y1="${y+4}" x2="${x+pw/2}" y2="${y+ph-4}" stroke="#fff" stroke-width=".6" opacity=".5"/>`;
-      if(c<cols-1){
-        const wy=y+ph/2;
-        wires += `<line x1="${x+pw}" y1="${wy}" x2="${x+pw+gx}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
-      }
+    const top=py(r)+4,bot=py(r)+PH-4,mid=py(r)+PH/2;
+    for(let c=0;c<cols-1;c++){
+      const x1=px(c)+PW,x2=px(c+1),mx=(x1+x2)/2;
+      svg.append(
+        mk('line',{x1,y1:top,x2:mx,y2:top,stroke:RED,'stroke-width':1.8}),
+        mk('line',{x1:mx,y1:top,x2:mx,y2:bot,stroke:WIRE,'stroke-width':1.4,'stroke-dasharray':'3,2'}),
+        mk('line',{x1:mx,y1:top,x2:x2,y2:top,stroke:RED,'stroke-width':1.8}),
+        mk('line',{x1,y1:bot,x2:mx,y2:bot,stroke:BLK,'stroke-width':1.8}),
+        mk('line',{x1:mx,y1:bot,x2:x2,y2:bot,stroke:BLK,'stroke-width':1.8})
+      );
     }
-    const lastX = startX + (cols-1)*(pw+gx) + pw;
-    const wy = y+ph/2;
-    const lineEndX = moreCols>0 ? lastX+58 : lastX;
+    const ex=px(cols-1)+PW;
     if(moreCols>0){
-      wires += `<line x1="${lastX}" y1="${wy}" x2="${lastX+30}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4" stroke-dasharray="3,3"/>
-        <text x="${lastX+34}" y="${wy+4}" font-size="10.5" fill="var(--text2)">+${moreCols} más</text>`;
+      svg.append(
+        mk('line',{x1:ex,y1:mid,x2:ex+18,y2:mid,stroke:'#aaa','stroke-width':1.4,'stroke-dasharray':'4,3'}),
+        mk('text',{x:ex+22,y:mid+3,'font-size':9,fill:'#999'},'+'+moreCols+' más')
+      );
     }
-    wires += `<line x1="${lineEndX}" y1="${wy}" x2="${busX}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
-    rowLabels += `<text x="${startX-8}" y="${wy+4}" font-size="10.5" fill="var(--text2)" text-anchor="end">S${r+1}</text>`;
+    const wx=moreCols>0?ex+22+String(moreCols).length*6+8:ex;
+    svg.append(
+      mk('line',{x1:wx,y1:py(r)+4,x2:BUS_X-2,y2:py(r)+4,stroke:RED,'stroke-width':1.8}),
+      mk('line',{x1:wx,y1:py(r)+PH-4,x2:BUS_X+2,y2:py(r)+PH-4,stroke:BLK,'stroke-width':1.8})
+    );
+    svg.append(mk('text',{x:sx-5,y:mid+4,'font-size':9,fill:'#888','text-anchor':'end'},'S'+(r+1)));
   }
-  if(moreRows>0){
-    const y = startY + rows*(ph+gy) - gy + 14;
-    rowLabels += `<text x="${startX}" y="${y}" font-size="11.5" fill="var(--text2)" font-style="italic">+ ${moreRows} string(s) más en paralelo →</text>`;
+  if(moreRows>0) svg.append(mk('text',{x:sx,y:sy+rows*(PH+GY)+10,'font-size':9,fill:'#999','font-style':'italic'},'+'+moreRows+' string(s) más'));
+
+  // Bus + y -
+  const bTop=sy+4,bBot=sy+(rows-1)*(PH+GY)+PH-4,bMid=(bTop+bBot)/2;
+  svg.append(
+    mk('line',{x1:BUS_X-2,y1:bTop,x2:BUS_X-2,y2:bBot,stroke:RED,'stroke-width':3,'stroke-linecap':'round'}),
+    mk('line',{x1:BUS_X+2,y1:bTop,x2:BUS_X+2,y2:bBot,stroke:BLK,'stroke-width':3,'stroke-linecap':'round'}),
+    mk('line',{x1:BUS_X-2,y1:invCY-5,x2:BUS_X+10,y2:invCY-5,stroke:RED,'stroke-width':2.5,'stroke-linecap':'round'}),
+    mk('line',{x1:BUS_X+2,y1:invCY+5,x2:BUS_X+10,y2:invCY+5,stroke:BLK,'stroke-width':2.5,'stroke-linecap':'round'}),
+    mk('text',{x:BUS_X-6,y:bTop-4,'font-size':10,fill:RED,'font-weight':'800','text-anchor':'middle'},'+'),
+    mk('text',{x:BUS_X+6,y:bBot+13,'font-size':10,fill:BLK,'font-weight':'800','text-anchor':'middle'},'−')
+  );
+  for(let r=0;r<rows;r++){
+    svg.append(
+      mk('circle',{cx:BUS_X-2,cy:py(r)+4,r:3,fill:RED}),
+      mk('circle',{cx:BUS_X+2,cy:py(r)+PH-4,r:3,fill:BLK})
+    );
   }
 
-  const busTop = startY + ph/2;
-  const busBottom = startY + (rows-1)*(ph+gy) + ph/2;
-  const invX = busX + 46, invY = (busTop+busBottom)/2 - 24, invW = 90, invH = 48;
+  // Inversor
+  const IVX=BUS_X+10,IVY=invCY-INV_H/2;
+  const iStroke=vocOk===false?RED:'#8898AA',iFill=vocOk===false?'#FDECEC':'#EEF2F5';
+  svg.append(
+    mk('rect',{x:IVX,y:IVY,width:INV_W,height:INV_H,rx:7,fill:iFill,stroke:iStroke,'stroke-width':1.8}),
+    mk('text',{x:IVX+INV_W/2,y:IVY+15,'font-size':9,fill:'#555','text-anchor':'middle','font-weight':'600'},'⚡ Inversor'),
+    mk('text',{x:IVX+INV_W/2,y:IVY+28,'font-size':10.5,fill:'#333','text-anchor':'middle','font-weight':'700'},d.invPot?(d.invPot+'W'):'—'),
+    vocOk===false?mk('text',{x:IVX+INV_W/2,y:IVY+41,'font-size':8,fill:RED,'text-anchor':'middle'},'⚠ Vdc excedido'):
+    vocOk===true ?mk('text',{x:IVX+INV_W/2,y:IVY+41,'font-size':8,fill:'#3a7','text-anchor':'middle'},'✓ Compatible'):
+                  mk('text',{x:IVX+INV_W/2,y:IVY+41,'font-size':8,fill:'#aaa','text-anchor':'middle'},'Sin inversor')
+  );
 
-  const vocOk  = (d.invVdc!=null) ? d.vocFS <= d.invVdc : null;
-  const compatColor = vocOk===null ? 'var(--text2)' : (vocOk ? 'var(--green)' : 'var(--red)');
-  const compatBg     = vocOk===null ? 'var(--bg3)' : (vocOk ? 'var(--green-dim)' : 'var(--red-dim)');
+  // Paneles como <g> arrastrables
+  const pEls=[];
+  for(let r=0;r<rows;r++){
+    pEls.push([]);
+    for(let c=0;c<cols;c++){
+      const g=document.createElementNS(ns,'g');
+      g.setAttribute('data-r',r);g.setAttribute('data-c',c);g.style.cursor='grab';
+      const ox=px(c),oy=py(r);
+      g.append(
+        mk('rect',{x:ox+2,y:oy+2,width:PW,height:PH,rx:5,fill:'rgba(0,0,0,.13)'}),
+        mk('rect',{x:ox,y:oy,width:PW,height:PH,rx:5,fill:PNL,stroke:'rgba(0,0,0,.18)','stroke-width':1}),
+        mk('line',{x1:ox+6,y1:oy+PH/2,x2:ox+PW-6,y2:oy+PH/2,stroke:'#fff','stroke-width':.8,opacity:.45}),
+        mk('line',{x1:ox+PW/3,y1:oy+4,x2:ox+PW/3,y2:oy+PH-4,stroke:'#fff','stroke-width':.6,opacity:.35}),
+        mk('line',{x1:ox+2*PW/3,y1:oy+4,x2:ox+2*PW/3,y2:oy+PH-4,stroke:'#fff','stroke-width':.6,opacity:.35}),
+        mk('text',{x:ox+PW/2,y:oy+PH-5,'font-size':8,fill:'rgba(255,255,255,.95)','text-anchor':'middle','font-weight':'700'},(d.panWp||'')+'Wp'),
+        mk('text',{x:ox+4,y:oy+9,'font-size':8,fill:'#ffd','font-weight':'900'},'+'),
+        mk('text',{x:ox+4,y:oy+PH-2,'font-size':8,fill:'#aef','font-weight':'900'},'−')
+      );
+      svg.append(g);
+      pEls[r].push(g);
+    }
+  }
 
-  const svgH = Math.max(140, startY + rows*(ph+gy) + (moreRows>0?26:0));
-  const svgW = invX + invW + 16;
-
-  el.innerHTML = `
-    <div class="card-title" style="margin-bottom:6px"><span>📐</span> Visualización del arreglo (cadenas serie/paralelo)</div>
-    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);padding:8px">
-      <svg viewBox="0 0 ${svgW} ${svgH}" width="100%" style="min-width:480px;display:block">
-        ${panels}${wires}${rowLabels}
-        <line x1="${busX}" y1="${busTop}" x2="${busX}" y2="${busBottom}" stroke="var(--ink2)" stroke-width="1.6"/>
-        <line x1="${busX}" y1="${(busTop+busBottom)/2}" x2="${invX}" y2="${(busTop+busBottom)/2}" stroke="var(--ink2)" stroke-width="1.6"/>
-        <rect x="${invX}" y="${invY}" width="${invW}" height="${invH}" rx="6" fill="${vocOk===false?'var(--red-dim)':'var(--bg3)'}" stroke="${vocOk===false?'var(--red)':'var(--border2)'}" stroke-width="1.4"/>
-        <text x="${invX+invW/2}" y="${invY+20}" font-size="11.5" font-weight="700" fill="var(--text)" text-anchor="middle">Inversor</text>
-        <text x="${invX+invW/2}" y="${invY+34}" font-size="10" fill="var(--text2)" text-anchor="middle">${d.invPot?d.invPot+'W':'—'}</text>
-      </svg>
-    </div>
-    <div class="g3" style="margin-top:10px;gap:8px">
-      <div class="stat"><div class="stat-label">Total paneles</div><div class="stat-val">${d.nPanelR}</div><div class="stat-unit">${rowsReal} string(s) × ${colsReal} en serie</div></div>
-      <div class="stat"><div class="stat-label">VOC string × F.S.</div><div class="stat-val">${f2(d.vocFS)}</div><div class="stat-unit">V</div></div>
-      <div class="stat"><div class="stat-label">ISC paralelo × F.S.</div><div class="stat-val">${f2(d.iscFS)}</div><div class="stat-unit">A</div></div>
-    </div>
-    <div style="margin-top:8px;background:${compatBg};border:1px solid ${compatColor};border-radius:var(--radius-sm);padding:10px 14px;font-size:12.5px;color:${compatColor};font-weight:600;display:flex;align-items:center;gap:8px">
-      ${vocOk===null
-        ? `<span>ℹ️</span><span>Selecciona un inversor del catálogo para validar compatibilidad de voltaje DC máximo.</span>`
-        : vocOk
-          ? `<span>✓</span><span>Compatible: VOC×F.S. (${f2(d.vocFS)}V) está dentro del límite DC del inversor (${d.invVdc}V máx).</span>`
-          : `<span>⚠️</span><span>Incompatible: VOC×F.S. (${f2(d.vocFS)}V) supera el máximo DC del inversor (${d.invVdc}V). Reduce paneles en serie o elige un inversor con mayor Vdc máx.</span>`
+  // Drag & drop en SVG
+  let dragging=null,dOffX=0,dOffY=0,oR=0,oC=0,oPX=0,oPY=0;
+  function svgPt(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());}
+  pEls.flat().forEach(g=>{
+    g.addEventListener('mousedown',e=>{
+      e.preventDefault();dragging=g;
+      oR=+g.getAttribute('data-r');oC=+g.getAttribute('data-c');
+      const pt=svgPt(e);oPX=px(oC);oPY=py(oR);
+      dOffX=pt.x-oPX;dOffY=pt.y-oPY;
+      g.style.cursor='grabbing';svg.style.cursor='grabbing';svg.appendChild(g);
+    });
+    g.addEventListener('mouseenter',()=>{if(!dragging)g.querySelectorAll('rect')[1].setAttribute('opacity','.85');});
+    g.addEventListener('mouseleave',()=>{if(!dragging)g.querySelectorAll('rect')[1].setAttribute('opacity','1');});
+  });
+  svg.addEventListener('mousemove',e=>{
+    if(!dragging)return;e.preventDefault();
+    const pt=svgPt(e);
+    dragging.setAttribute('transform','translate('+(pt.x-dOffX-oPX)+','+(pt.y-dOffY-oPY)+')');
+  });
+  function endDrag(e){
+    if(!dragging)return;
+    const pt=svgPt(e);
+    const tc=Math.max(0,Math.min(cols-1,Math.round((pt.x-sx)/(PW+GX))));
+    const tr=Math.max(0,Math.min(rows-1,Math.round((pt.y-sy)/(PH+GY))));
+    dragging.setAttribute('transform','');dragging.style.cursor='grab';svg.style.cursor='';
+    if(tc!==oC||tr!==oR){
+      const src=dragging,tgt=pEls[tr][tc];
+      const dX=px(tc)-oPX,dY=py(tr)-oPY;
+      function shiftEl(el,dx,dy){
+        ['x','cx'].forEach(a=>{if(el.hasAttribute(a))el.setAttribute(a,+el.getAttribute(a)+dx);});
+        ['y','cy'].forEach(a=>{if(el.hasAttribute(a))el.setAttribute(a,+el.getAttribute(a)+dy);});
+        if(el.hasAttribute('x1')){el.setAttribute('x1',+el.getAttribute('x1')+dx);el.setAttribute('y1',+el.getAttribute('y1')+dy);}
+        if(el.hasAttribute('x2')){el.setAttribute('x2',+el.getAttribute('x2')+dx);el.setAttribute('y2',+el.getAttribute('y2')+dy);}
       }
-    </div>
-    ${(d.invMppt!=null && rowsReal>d.invMppt) ? `<div style="margin-top:6px;font-size:11.5px;color:var(--amber)">⚠️ Tienes ${rowsReal} string(s) en paralelo independientes y el inversor solo tiene ${d.invMppt} MPPT — varios strings deberán combinarse en el mismo MPPT (usa combiner box o verifica que sea compatible).</div>` : ''}
-  `;
+      src.querySelectorAll('*').forEach(e=>shiftEl(e,dX,dY));
+      tgt.querySelectorAll('*').forEach(e=>shiftEl(e,-dX,-dY));
+      src.setAttribute('data-r',tr);src.setAttribute('data-c',tc);
+      tgt.setAttribute('data-r',oR);tgt.setAttribute('data-c',oC);
+      pEls[tr][tc]=src;pEls[oR][oC]=tgt;
+    }
+    dragging=null;
+  }
+  svg.addEventListener('mouseup',endDrag);
+  svg.addEventListener('mouseleave',endDrag);
+
+  // Render al DOM
+  el.innerHTML='';
+  const title=document.createElement('div');title.className='card-title';title.style.marginBottom='8px';
+  title.innerHTML='<span>📐</span> Visualización del arreglo <small style="font-weight:400;color:var(--text3);font-size:10px">— arrastra los paneles</small>';
+  el.appendChild(title);
+  const wrap=document.createElement('div');
+  wrap.style.cssText='overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);padding:8px';
+  wrap.appendChild(svg);el.appendChild(wrap);
+  const stats=document.createElement('div');stats.className='g3';stats.style.cssText='margin-top:10px;gap:8px';
+  stats.innerHTML='<div class="stat"><div class="stat-label">Total paneles</div><div class="stat-val">'+d.nPanelR+'</div><div class="stat-unit">'+rowsReal+' string(s) × '+colsReal+' en serie</div></div>'
+    +'<div class="stat"><div class="stat-label">VOC string × F.S.</div><div class="stat-val">'+f2(d.vocFS)+'</div><div class="stat-unit">V</div></div>'
+    +'<div class="stat"><div class="stat-label">ISC paralelo × F.S.</div><div class="stat-val">'+f2(d.iscFS)+'</div><div class="stat-unit">A</div></div>';
+  el.appendChild(stats);
+  const cColor=vocOk===null?'var(--text2)':vocOk?'var(--green)':'var(--red)';
+  const cBg=vocOk===null?'var(--bg3)':vocOk?'var(--green-dim)':'var(--red-dim)';
+  const compat=document.createElement('div');
+  compat.style.cssText='margin-top:8px;background:'+cBg+';border:1px solid '+cColor+';border-radius:var(--radius-sm);padding:9px 13px;font-size:12px;color:'+cColor+';font-weight:600;display:flex;align-items:center;gap:8px';
+  compat.innerHTML=vocOk===null?'<span>ℹ️</span><span>Selecciona un inversor para validar compatibilidad DC.</span>'
+    :vocOk?'<span>✓</span><span>Compatible: VOC×F.S. ('+f2(d.vocFS)+'V) ≤ Vdc máx del inversor ('+d.invVdc+'V).</span>'
+    :'<span>⚠️</span><span>Incompatible: VOC×F.S. ('+f2(d.vocFS)+'V) supera Vdc máx del inversor ('+d.invVdc+'V).</span>';
+  el.appendChild(compat);
+  if(d.invMppt!=null&&rowsReal>d.invMppt){const w=document.createElement('div');w.style.cssText='margin-top:6px;font-size:11px;color:var(--amber)';w.textContent='⚠️ '+rowsReal+' strings pero inversor tiene solo '+d.invMppt+' MPPT.';el.appendChild(w);}
+  if(d.alertsHtml){const ah=document.createElement('div');ah.innerHTML=d.alertsHtml;el.appendChild(ah);}
 }
 
 /* ══════════════════════════════════════════════════════
-   VISUALIZACIÓN DEL BANCO DE BATERÍAS — serie/paralelo
+   VISUALIZACIÓN DEL BANCO DE BATERÍAS — SVG interactivo
 ══════════════════════════════════════════════════════ */
-function renderBatteryDiagram(opt, batV, batTipo){
-  const el = document.getElementById('bat-diagram');
-  if(!el || !opt || !opt.nb) { if(el) el.innerHTML=''; return; }
+function renderBatteryDiagram(opt,batV,batTipo){
+  const el=document.getElementById('bat-diagram');
+  if(!el||!opt||!opt.nb){if(el)el.innerHTML='';return;}
+  const nb=opt.nb,vc=opt.vc;
+  const rows=Math.min(nb,5),cols=Math.min(vc,7);
+  const moreRows=nb-rows,moreCols=vc-cols;
+  const BW=48,BH=30,GX=12,GY=16,PAD=20,LW=24;
+  const sx=LW+PAD,sy=PAD+6;
+  const BUS_X=sx+cols*(BW+GX)-GX+(moreCols>0?46:0)+20;
+  const INV_W=76,INV_H=44;
+  const svgW=BUS_X+10+INV_W+12;
+  const svgH=Math.max(90,sy+rows*(BH+GY)-GY+PAD+(moreRows>0?18:0));
+  const invCY=sy+(rows*(BH+GY)-GY)/2;
+  const RED='#e53535',BLK='#1a1a1a';
+  const BCLR=batTipo==='litio'?'#3A7A5C':batTipo==='agm'?'#3D6B8C':'#6B5EA8';
+  const ns='http://www.w3.org/2000/svg';
+  function bx(c){return sx+c*(BW+GX);}
+  function by(r){return sy+r*(BH+GY);}
+  function mk(tag,attrs,txt){const e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(txt!=null)e.textContent=txt;return e;}
+  const svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('viewBox','0 0 '+svgW+' '+svgH);
+  svg.setAttribute('width','100%');
+  svg.style.cssText='display:block;min-width:240px;overflow:visible;';
 
-  const vc = opt.vc;       // baterías en serie por string
-  const nb = opt.nb;       // strings en paralelo
-  const rows = Math.min(nb, 4);
-  const cols = Math.min(vc, 6);
-  const moreRows = nb - rows;
-  const moreCols = vc - cols;
-
-  const bw=36, bh=24, gx=14, gy=18;
-  const startX = 50, startY = 24;
-  const lastColX = startX + (cols-1)*(bw+gx) + bw;
-  const busX = (moreCols>0 ? lastColX+30+58 : lastColX+30);
-
-  let cells='', wires='', labels='';
   for(let r=0;r<rows;r++){
-    const y = startY + r*(bh+gy);
-    for(let c=0;c<cols;c++){
-      const x = startX + c*(bw+gx);
-      cells += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="3" fill="var(--green)" opacity=".85" stroke="var(--ink)" stroke-width=".6"/>
-        <line x1="${x+6}" y1="${y+bh/2}" x2="${x+bw-6}" y2="${y+bh/2}" stroke="#fff" stroke-width=".6" opacity=".6"/>`;
-      if(c<cols-1){
-        const wy=y+bh/2;
-        wires += `<line x1="${x+bw}" y1="${wy}" x2="${x+bw+gx}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
-      }
+    const top=by(r)+3,bot=by(r)+BH-3,mid=by(r)+BH/2;
+    for(let c=0;c<cols-1;c++){
+      const x1=bx(c)+BW,x2=bx(c+1),mx=(x1+x2)/2;
+      svg.append(
+        mk('line',{x1,y1:top,x2:mx,y2:top,stroke:RED,'stroke-width':1.6}),
+        mk('line',{x1:mx,y1:top,x2:mx,y2:bot,stroke:'#8898AA','stroke-width':1.2,'stroke-dasharray':'3,2'}),
+        mk('line',{x1:mx,y1:top,x2:x2,y2:top,stroke:RED,'stroke-width':1.6}),
+        mk('line',{x1,y1:bot,x2:mx,y2:bot,stroke:BLK,'stroke-width':1.6}),
+        mk('line',{x1:mx,y1:bot,x2:x2,y2:bot,stroke:BLK,'stroke-width':1.6})
+      );
     }
-    const wy = y+bh/2;
+    const ex=bx(cols-1)+BW;
     if(moreCols>0){
-      wires += `<line x1="${lastColX}" y1="${wy}" x2="${lastColX+30}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4" stroke-dasharray="3,3"/>
-        <text x="${lastColX+34}" y="${wy+4}" font-size="10.5" fill="var(--text2)">+${moreCols} más</text>`;
-      wires += `<line x1="${lastColX+88}" y1="${wy}" x2="${busX}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
-    } else {
-      wires += `<line x1="${lastColX}" y1="${wy}" x2="${busX}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
+      svg.append(
+        mk('line',{x1:ex,y1:mid,x2:ex+14,y2:mid,stroke:'#aaa','stroke-width':1.2,'stroke-dasharray':'3,3'}),
+        mk('text',{x:ex+18,y:mid+3,'font-size':8,fill:'#aaa'},'+'+moreCols)
+      );
     }
-    labels += `<text x="${startX-8}" y="${wy+4}" font-size="10.5" fill="var(--text2)" text-anchor="end">B${r+1}</text>`;
+    const wx=moreCols>0?ex+18+String(moreCols).length*5+6:ex;
+    svg.append(
+      mk('line',{x1:wx,y1:by(r)+3,x2:BUS_X-2,y2:by(r)+3,stroke:RED,'stroke-width':1.6}),
+      mk('line',{x1:wx,y1:by(r)+BH-3,x2:BUS_X+2,y2:by(r)+BH-3,stroke:BLK,'stroke-width':1.6})
+    );
+    svg.append(mk('text',{x:sx-3,y:mid+3,'font-size':8,fill:'#888','text-anchor':'end'},'B'+(r+1)));
   }
-  if(moreRows>0){
-    const y = startY + rows*(bh+gy) - gy + 14;
-    labels += `<text x="${startX}" y="${y}" font-size="11.5" fill="var(--text2)" font-style="italic">+ ${moreRows} string(s) más en paralelo →</text>`;
+  if(moreRows>0) svg.append(mk('text',{x:sx,y:sy+rows*(BH+GY)+10,'font-size':8,fill:'#999','font-style':'italic'},'+'+moreRows+' más'));
+
+  const bTop=sy+3,bBot=sy+(rows-1)*(BH+GY)+BH-3,bMid=(bTop+bBot)/2;
+  svg.append(
+    mk('line',{x1:BUS_X-2,y1:bTop,x2:BUS_X-2,y2:bBot,stroke:RED,'stroke-width':2.8,'stroke-linecap':'round'}),
+    mk('line',{x1:BUS_X+2,y1:bTop,x2:BUS_X+2,y2:bBot,stroke:BLK,'stroke-width':2.8,'stroke-linecap':'round'}),
+    mk('line',{x1:BUS_X-2,y1:invCY-4,x2:BUS_X+10,y2:invCY-4,stroke:RED,'stroke-width':2.2}),
+    mk('line',{x1:BUS_X+2,y1:invCY+4,x2:BUS_X+10,y2:invCY+4,stroke:BLK,'stroke-width':2.2}),
+    mk('text',{x:BUS_X-6,y:bTop-4,'font-size':9,fill:RED,'font-weight':'800','text-anchor':'middle'},'+'),
+    mk('text',{x:BUS_X+6,y:bBot+12,'font-size':9,fill:BLK,'font-weight':'800','text-anchor':'middle'},'−')
+  );
+  for(let r=0;r<rows;r++){
+    svg.append(
+      mk('circle',{cx:BUS_X-2,cy:by(r)+3,r:2.5,fill:RED}),
+      mk('circle',{cx:BUS_X+2,cy:by(r)+BH-3,r:2.5,fill:BLK})
+    );
+  }
+  const IVX=BUS_X+10,IVY=invCY-INV_H/2;
+  svg.append(
+    mk('rect',{x:IVX,y:IVY,width:INV_W,height:INV_H,rx:6,fill:'#EEF2F5',stroke:'#8898AA','stroke-width':1.6}),
+    mk('text',{x:IVX+INV_W/2,y:IVY+14,'font-size':8.5,fill:'#555','text-anchor':'middle','font-weight':'600'},'⚡ Inversor'),
+    mk('text',{x:IVX+INV_W/2,y:IVY+25,'font-size':7.5,fill:'#777','text-anchor':'middle'},'/ Cargador')
+  );
+
+  // Baterías
+  const bEls=[];
+  for(let r=0;r<rows;r++){
+    bEls.push([]);
+    for(let c=0;c<cols;c++){
+      const g=document.createElementNS(ns,'g');
+      g.setAttribute('data-r',r);g.setAttribute('data-c',c);g.style.cursor='grab';
+      const ox=bx(c),oy=by(r);
+      g.append(
+        mk('rect',{x:ox+1,y:oy+1,width:BW,height:BH,rx:4,fill:'rgba(0,0,0,.12)'}),
+        mk('rect',{x:ox,y:oy,width:BW,height:BH,rx:4,fill:BCLR,stroke:'rgba(0,0,0,.18)','stroke-width':1}),
+        mk('text',{x:ox+BW/2,y:oy+BH/2,  'font-size':8,fill:'rgba(255,255,255,.95)','text-anchor':'middle','font-weight':'700'},opt.ah+'Ah'),
+        mk('text',{x:ox+BW/2,y:oy+BH/2+9,'font-size':7,fill:'rgba(255,255,255,.7)','text-anchor':'middle'},batV+'V'),
+        mk('text',{x:ox+3,y:oy+9,'font-size':7,fill:'#ffd','font-weight':'900'},'+'),
+        mk('text',{x:ox+3,y:oy+BH-1,'font-size':7,fill:'#aef','font-weight':'900'},'−')
+      );
+      svg.append(g);bEls[r].push(g);
+    }
   }
 
-  const busTop = startY + bh/2;
-  const busBottom = startY + (rows-1)*(bh+gy) + bh/2;
-  const invX = busX + 30, invY = (busTop+busBottom)/2 - 22, invW = 84, invH = 44;
-  const svgH = Math.max(120, startY + rows*(bh+gy) + (moreRows>0?26:0));
-  const svgW = invX + invW + 16;
+  let dragging=null,dOffX=0,dOffY=0,oR=0,oC=0,oPX=0,oPY=0;
+  function svgPt(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());}
+  bEls.flat().forEach(g=>{
+    g.addEventListener('mousedown',e=>{
+      e.preventDefault();dragging=g;
+      oR=+g.getAttribute('data-r');oC=+g.getAttribute('data-c');
+      const pt=svgPt(e);oPX=bx(oC);oPY=by(oR);
+      dOffX=pt.x-oPX;dOffY=pt.y-oPY;
+      g.style.cursor='grabbing';svg.style.cursor='grabbing';svg.appendChild(g);
+    });
+  });
+  svg.addEventListener('mousemove',e=>{
+    if(!dragging)return;e.preventDefault();
+    const pt=svgPt(e);
+    dragging.setAttribute('transform','translate('+(pt.x-dOffX-oPX)+','+(pt.y-dOffY-oPY)+')');
+  });
+  function endDrag(e){
+    if(!dragging)return;
+    const pt=svgPt(e);
+    const tc=Math.max(0,Math.min(cols-1,Math.round((pt.x-sx)/(BW+GX))));
+    const tr=Math.max(0,Math.min(rows-1,Math.round((pt.y-sy)/(BH+GY))));
+    dragging.setAttribute('transform','');dragging.style.cursor='grab';svg.style.cursor='';
+    if(tc!==oC||tr!==oR){
+      const src=dragging,tgt=bEls[tr][tc];
+      const dX=bx(tc)-oPX,dY=by(tr)-oPY;
+      function sh(el,dx,dy){
+        ['x','cx'].forEach(a=>{if(el.hasAttribute(a))el.setAttribute(a,+el.getAttribute(a)+dx);});
+        ['y','cy'].forEach(a=>{if(el.hasAttribute(a))el.setAttribute(a,+el.getAttribute(a)+dy);});
+        if(el.hasAttribute('x1')){el.setAttribute('x1',+el.getAttribute('x1')+dx);el.setAttribute('y1',+el.getAttribute('y1')+dy);}
+        if(el.hasAttribute('x2')){el.setAttribute('x2',+el.getAttribute('x2')+dx);el.setAttribute('y2',+el.getAttribute('y2')+dy);}
+      }
+      src.querySelectorAll('*').forEach(e=>sh(e,dX,dY));
+      tgt.querySelectorAll('*').forEach(e=>sh(e,-dX,-dY));
+      src.setAttribute('data-r',tr);src.setAttribute('data-c',tc);
+      tgt.setAttribute('data-r',oR);tgt.setAttribute('data-c',oC);
+      bEls[tr][tc]=src;bEls[oR][oC]=tgt;
+    }
+    dragging=null;
+  }
+  svg.addEventListener('mouseup',endDrag);
+  svg.addEventListener('mouseleave',endDrag);
 
-  el.innerHTML = `
-    <div class="card-title" style="margin-bottom:6px"><span>🔋</span> Visualización del banco de baterías (${batTipo.toUpperCase()} ${batV}V)</div>
-    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);padding:8px">
-      <svg viewBox="0 0 ${svgW} ${svgH}" width="100%" style="min-width:420px;display:block">
-        ${cells}${wires}${labels}
-        <line x1="${busX}" y1="${busTop}" x2="${busX}" y2="${busBottom}" stroke="var(--ink2)" stroke-width="1.6"/>
-        <line x1="${busX}" y1="${(busTop+busBottom)/2}" x2="${invX}" y2="${(busTop+busBottom)/2}" stroke="var(--ink2)" stroke-width="1.6"/>
-        <rect x="${invX}" y="${invY}" width="${invW}" height="${invH}" rx="6" fill="var(--bg3)" stroke="var(--border2)" stroke-width="1.4"/>
-        <text x="${invX+invW/2}" y="${invY+18}" font-size="11" font-weight="700" fill="var(--text)" text-anchor="middle">Inversor</text>
-        <text x="${invX+invW/2}" y="${invY+32}" font-size="9.5" fill="var(--text2)" text-anchor="middle">/ Cargador</text>
-      </svg>
-    </div>
-    <div class="g3" style="margin-top:10px;gap:8px">
-      <div class="stat"><div class="stat-label">Total baterías</div><div class="stat-val">${opt.nbTotal}</div><div class="stat-unit">${nb} string(s) × ${vc} en serie</div></div>
-      <div class="stat"><div class="stat-label">Capacidad por string</div><div class="stat-val">${opt.ah}</div><div class="stat-unit">Ah</div></div>
-      <div class="stat green"><div class="stat-label">Energía total banco</div><div class="stat-val">${f0(opt.energiaWh)}</div><div class="stat-unit">Wh</div></div>
-    </div>
-  `;
+  el.innerHTML='';
+  const title=document.createElement('div');title.className='card-title';title.style.marginBottom='8px';
+  title.innerHTML='<span>🔋</span> Banco de baterías ('+batTipo.toUpperCase()+' '+batV+'V) <small style="font-weight:400;color:var(--text3);font-size:10px">— arrastra para reorganizar</small>';
+  el.appendChild(title);
+  const wrap=document.createElement('div');
+  wrap.style.cssText='overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);padding:8px';
+  wrap.appendChild(svg);el.appendChild(wrap);
+  const stats=document.createElement('div');stats.className='g3';stats.style.cssText='margin-top:10px;gap:8px';
+  stats.innerHTML='<div class="stat"><div class="stat-label">Total baterías</div><div class="stat-val">'+opt.nbTotal+'</div><div class="stat-unit">'+nb+' string(s) × '+vc+' en serie</div></div>'
+    +'<div class="stat"><div class="stat-label">Capacidad por string</div><div class="stat-val">'+opt.ah+'</div><div class="stat-unit">Ah</div></div>'
+    +'<div class="stat green"><div class="stat-label">Energía total banco</div><div class="stat-val">'+f0(opt.energiaWh)+'</div><div class="stat-unit">Wh</div></div>';
+  el.appendChild(stats);
 }
 
-/* ══════════════════════════════════════════════════════
-   MODO RECIBO
-══════════════════════════════════════════════════════ */
+
 function calcDesdeRecibo(){
   const kwh = +document.getElementById('r-kwh').value||0;
   const hsp = +document.getElementById('r-hsp').value||4.5;
@@ -3337,8 +3560,9 @@ document.getElementById('p-fecha').value = new Date().toISOString().split('T')[0
 populateSelects();
 renderCargas();
 calcAire();
-setTimeout(initPvgisMap, 100);
+calcAll();
 wrapFormulaBoxes();
+setTimeout(initPvgisMap, 100);
 </script>
 </body>
 </html>
