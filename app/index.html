@@ -127,7 +127,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 /* ── MAIN ── */
 .main{padding:22px 20px 70px;overflow-x:hidden;max-width:100%}
-@media(max-width:768px){.main{padding:16px 12px 70px}}
+@media(max-width:768px){.main{padding:12px 10px 80px}}
 .section{display:none}
 .section.active{display:block}
 
@@ -135,17 +135,26 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .page-title h1{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--text)}
 .page-title p{font-size:12px;color:var(--text2);margin-top:2px}
 .page-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:768px){
+  .page-title{margin-bottom:12px}
+  .page-title h1{font-size:16px}
+  .page-actions .btn{font-size:11px;padding:5px 10px}
+}
 
 .card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);margin-bottom:14px}
 .card-sm{padding:14px 16px}
-.card-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .card-title span{font-size:16px}
+@media(max-width:768px){
+  .card{padding:14px 12px;border-radius:10px;margin-bottom:10px}
+  .card-title{font-size:11px;margin-bottom:10px}
+}
 
 .g2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 @media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:600px){.g4,.g3,.g2{grid-template-columns:1fr}}
+@media(max-width:600px){.g4,.g3,.g2{grid-template-columns:1fr;gap:8px}}
 
 .field{margin-bottom:12px}
 .field label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
@@ -159,6 +168,12 @@ textarea{resize:vertical;min-height:70px}
 input.w60{width:64px}
 input.w80{width:80px}
 input.w100{width:100px}
+@media(max-width:768px){
+  input,select,textarea{font-size:16px;padding:10px 12px} /* 16px previene zoom en iOS */
+  .field{margin-bottom:10px}
+  .field-row{gap:6px}
+  input.w60,input.w80,input.w100{width:100%}
+}
 
 .mode-tabs{display:flex;gap:0;margin-bottom:20px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;background:var(--bg3)}
 .mode-tab{flex:1;padding:9px 16px;text-align:center;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);transition:all var(--transition)}
@@ -177,8 +192,18 @@ input.w100{width:100px}
 .stat.purple .stat-val{color:var(--purple)}
 .stat-unit{font-size:11px;color:var(--text2);margin-top:3px}
 .stat-formula{font-size:10px;color:var(--text3);margin-top:6px;font-family:monospace;line-height:1.4}
+@media(max-width:600px){
+  .stat{padding:10px 12px}
+  .stat-val{font-size:20px}
+  .stat-label{font-size:9px}
+  .stat-unit{font-size:10px}
+}
 
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media(max-width:600px){
+  .tbl-wrap{border-radius:8px;border:1px solid var(--border)}
+  .tbl-wrap::after{content:'← desliza →';display:block;text-align:center;font-size:10px;color:var(--text3);padding:4px;background:var(--bg3)}
+}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{padding:9px 12px;background:var(--bg3);color:var(--text2);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
 td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
@@ -197,16 +222,25 @@ td.r{text-align:right}
 td.c{text-align:center}
 td input,td select{background:var(--bg4);border:1px solid transparent;border-radius:4px;padding:5px 8px;font-size:12px;color:var(--text)}
 td input:focus,td select:focus{border-color:var(--accent);outline:none}
+@media(max-width:600px){
+  th,td{padding:7px 8px;font-size:11px}
+  td input,td select{font-size:14px;padding:6px 7px}
+}
 
 .add-row-btn{width:100%;padding:8px;margin-top:6px;background:transparent;border:1px dashed var(--border);border-radius:var(--radius-sm);color:var(--text3);cursor:pointer;font-size:12px;transition:all var(--transition);display:flex;align-items:center;justify-content:center;gap:6px}
 .add-row-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 
 .del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:3px 6px;border-radius:4px;transition:all var(--transition);line-height:1}
 .del:hover{color:var(--red);background:var(--red-dim)}
+@media(max-width:600px){
+  .del{font-size:16px;padding:5px 8px} /* más fácil de tocar */
+  .add-row-btn{padding:10px;font-size:13px}
+}
 
 .formula-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-family:monospace;font-size:12px;color:var(--text2);line-height:1.7;margin-top:10px}
 .formula-box .f-step{color:var(--green);font-weight:600}
 .formula-box .f-res{color:var(--amber)}
+@media(max-width:600px){.formula-box{font-size:11px;padding:8px 10px}}
 
 .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
 .badge-green{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
@@ -233,6 +267,12 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 .confirm-icon{font-size:36px;margin-bottom:12px}
 .confirm-title{font-size:16px;font-weight:700;margin-bottom:6px}
 .confirm-msg{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:4px}
+@media(max-width:600px){
+  .modal{padding:16px;border-radius:12px;max-height:85vh}
+  .modal-title{font-size:14px}
+  .modal-actions{justify-content:stretch}
+  .modal-actions .btn{flex:1;justify-content:center}
+}
 
 .equip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
 .equip-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;transition:border-color var(--transition)}
@@ -243,12 +283,20 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 .equip-specs{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .equip-spec{font-size:10px;padding:2px 7px;border-radius:99px;background:var(--bg4);border:1px solid var(--border);color:var(--text2)}
 .equip-actions{display:flex;gap:6px;margin-top:10px}
+@media(max-width:600px){
+  .equip-grid{grid-template-columns:1fr}
+  .equip-actions .btn{flex:1;justify-content:center;font-size:11px}
+}
 
 .tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--bg4);border:1px solid var(--border);color:var(--text3);font-size:9px;cursor:help;font-weight:700;margin-left:4px;position:relative}
 .tip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);color:var(--text);font-size:11px;padding:6px 10px;border-radius:6px;white-space:normal;max-width:250px;z-index:100;box-shadow:var(--shadow);font-weight:400}
 
-.auto-toggle{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--text2);font-weight:600;cursor:pointer;margin-bottom:12px;line-height:1.4}
-.auto-toggle input{width:auto;margin-top:2px;cursor:pointer}
+.auto-toggle{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:10px;padding:5px 10px 5px 6px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text2);transition:all .18s;user-select:none}
+.auto-toggle:has(input:checked){border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.auto-toggle input[type=checkbox]{display:none}
+.auto-toggle .chk{flex-shrink:0;width:15px;height:15px;border-radius:4px;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1}
+.auto-toggle:has(input:checked) .chk{background:var(--accent);border-color:var(--accent);color:#fff}
+.auto-toggle:has(input:checked) .chk::after{content:'✓';font-weight:900}
 
 .breakdown{background:var(--bg3);border-radius:var(--radius-sm);padding:12px 16px;margin-top:10px}
 .breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
@@ -259,13 +307,11 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 .manual-badge{font-size:9px;color:var(--amber);margin-left:4px}
 
 /* ── PAYWALL (Pro lock) ── */
-.paywall{
-  text-align:center;padding:56px 24px;background:var(--card-bg);
-  border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);
-}
+.paywall{text-align:center;padding:56px 24px;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
 .paywall-icon{font-size:38px;margin-bottom:14px}
 .paywall h2{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--text);margin-bottom:8px}
 .paywall p{font-size:13px;color:var(--text2);max-width:380px;margin:0 auto 20px;line-height:1.6}
+@media(max-width:600px){.paywall{padding:36px 16px}}
 
 /* ── LOGIN OVERLAY ── */
 .login-overlay{position:fixed;inset:0;background:var(--bg);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
@@ -276,6 +322,10 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 .login-card p{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.5}
 .btn-google{width:100%;padding:11px;border-radius:10px;background:var(--card-bg);border:1.5px solid var(--border);color:var(--text);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all var(--transition)}
 .btn-google:hover{border-color:var(--text2);box-shadow:var(--shadow)}
+@media(max-width:600px){
+  .login-card{padding:24px 18px;border-radius:12px}
+  .login-card h1{font-size:17px}
+}
 
 @media print{
   .topbar,.sidebar,.mobile-nav,.mobile-topbar,.icon-btn,.btn-secondary,.add-row-btn,.del,.modal-overlay,.login-overlay{display:none!important}
@@ -611,7 +661,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             </select>
             <label class="auto-toggle">
               <input type="checkbox" id="panel-auto" checked onchange="toggleAutoPanel()">
-              🤖 Recomendación — elige el panel más práctico para el resultado
+              <span class="chk"></span> 🤖 Recomendación automática
             </label>
           </div>
           <div class="field-row">
@@ -647,7 +697,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         </div>
         <div id="panel-results"></div>
       </div>
-      <div id="array-diagram" style="margin-top:14px"></div>
+      
       <div class="formula-box" id="panel-formula">Ingresa cargas para ver el cálculo de paneles…</div>
     </div>
 
@@ -665,7 +715,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
             </select>
             <label class="auto-toggle">
               <input type="checkbox" id="inv-auto" checked onchange="toggleAutoInv()">
-              🤖 Recomendación — elige el inversor más práctico para el resultado
+              <span class="chk"></span> 🤖 Recomendación automática
             </label>
           </div>
           <div class="field-row">
@@ -696,7 +746,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
               </select>
               <label class="auto-toggle">
                 <input type="checkbox" id="vbat-auto" checked onchange="toggleAutoVbat(this.checked)">
-                🤖 Recomendación — según consumo Wh/día (0–2000→12V · 2000–4000→24V · 4000+→48V)
+                <span class="chk"></span> 🤖 Voltaje automático
               </label>
             </div>
           </div>
@@ -732,7 +782,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         </div>
       </div>
       <div id="bat-results"></div>
-      <div id="bat-diagram" style="margin-top:6px"></div>
+      
       <div class="alert alert-info" style="margin:8px 0"><span class="alert-icon">💡</span><div style="font-size:11px">Haz clic en una fila de la tabla para elegir esa capacidad de batería. Por defecto se selecciona automáticamente la opción más eficiente (menor cantidad de baterías).</div></div>
       <div class="formula-box" id="bat-formula">Configura las baterías para ver el cálculo…</div>
     </div>
@@ -1948,11 +1998,29 @@ function calcAll(){
   const panIsc  = +document.getElementById('pan-isc').value ||14;
   const panVoc  = +document.getElementById('pan-voc').value ||49.9;
   const panVmpp = +document.getElementById('pan-vmpp').value||41.2;
-  const panPar  = +document.getElementById('pan-par').value ||1;
-  const panSer  = +document.getElementById('pan-ser').value ||1;
 
   const nPanel  = panWp > 0 ? ppico / panWp : 0;
   const nPanelR = Math.ceil(nPanel);
+
+  // Auto-distribuir serie/paralelo: en modo auto, calcular la mejor combinación
+  // que cumpla nPanelR sin superar el Vdc del inversor
+  const _invSelId0 = document.getElementById('inv-sel').value;
+  const _invObj0   = DB.inversores ? DB.inversores.find(x=>x.id===_invSelId0) : null;
+  const _vdcLim    = _invObj0 ? _invObj0.vdc : 500;
+  const maxSerAuto = panVoc > 0 ? Math.max(1, Math.floor(_vdcLim / (panVoc * fs))) : 1;
+  if(autoPanel && nPanelR > 0){
+    let bSer=1, bPar=nPanelR, bTotal=Infinity;
+    for(let s=1; s<=Math.min(maxSerAuto, nPanelR, 20); s++){
+      const p = Math.ceil(nPanelR/s);
+      const t = s*p;
+      if(t < bTotal || (t===bTotal && Math.abs(s-p)<Math.abs(bSer-bPar))){ bTotal=t; bSer=s; bPar=p; }
+    }
+    document.getElementById('pan-ser').value = bSer;
+    document.getElementById('pan-par').value = bPar;
+  }
+
+  const panPar  = +document.getElementById('pan-par').value ||1;
+  const panSer  = +document.getElementById('pan-ser').value ||1;
   const iscPar  = panIsc * panPar;
   const vocSer  = panVoc * panSer;
   const iscFS   = iscPar * fs;
@@ -1969,6 +2037,7 @@ function calcAll(){
       <div class="stat amber"><div class="stat-label">ISC×F.S. → Breaker DC</div><div class="stat-val">${f2(iscFS)}</div><div class="stat-unit">A → Breaker ${nextBreakerUp(iscFS)}A</div></div>
       <div class="stat amber"><div class="stat-label">VOC×F.S. → DPS DC</div><div class="stat-val">${f2(vocFS)}</div><div class="stat-unit">V → DPS ≥${f0(vocFS)}V</div></div>
     </div>
+    ${compAlerts.length ? '<div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">'+compAlerts.map(a=>`<div style="padding:8px 12px;border-radius:6px;font-size:12px;font-weight:600;background:${a.t==='err'?'var(--red-dim)':'var(--amber-dim)'};border:1px solid ${a.t==='err'?'var(--red)':'var(--amber)'};color:${a.t==='err'?'var(--red)':'var(--amber)'}">${a.m}</div>`).join('')+'</div>' : ''}
   `;
   document.getElementById('panel-formula').innerHTML = `
     <div class="f-step">1. Consumo con F.S.:</div>  ${f0(totCons)} Wh × ${fs} = <span class="f-res">${f0(consFSWh)} Wh/día</span>
@@ -2008,14 +2077,23 @@ function calcAll(){
 \n<div class="f-step">Protección baterías (DC):</div>  ${f0(potFSW)} W ÷ ${vbat} V = ${f2(batProt)} A → Breaker <span class="f-res">${nextBreakerDown(batProt)} A ↓ (por debajo)</span>
 \n<div class="f-step">Protección inversor (AC):</div>  ${f0(potFSW)} W ÷ 120 V = ${f2(acProt)} A → Breaker <span class="f-res">${nextBreakerDown(acProt)} A ↓ (por debajo)</span>`;
 
-  // VISUALIZACIÓN DE ARREGLO (cadenas serie/paralelo) + compatibilidad con inversor
-  const invSelId  = document.getElementById('inv-sel').value;
-  const invObj    = (typeof DB!=='undefined' && DB.inversores) ? DB.inversores.find(x=>x.id===invSelId) : null;
-  renderArrayDiagram({
-    nPanelR, panSer, panPar, panWp, panVoc, panVmpp, panIsc,
-    vocFS, iscFS, fs,
-    invPot, invVdc: invObj ? invObj.vdc : null, invMppt: invObj ? invObj.mppt : null, invOk
-  });
+  // VISUALIZACIÓN DE ARREGLO + alertas de compatibilidad cruzada
+  const invSelId = document.getElementById('inv-sel').value;
+  const invObj   = DB.inversores ? DB.inversores.find(x=>x.id===invSelId) : null;
+
+  const compAlerts = [];
+  if(invObj){
+    if(vocFS > invObj.vdc)
+      compAlerts.push({t:'err', m:`⚡ VOC×F.S. (${f2(vocFS)}V) supera el límite DC del inversor (${invObj.vdc}V). Reduce paneles en serie o elige otro inversor.`});
+    else if(vocFS > invObj.vdc*0.9)
+      compAlerts.push({t:'warn', m:`⚠️ VOC×F.S. (${f2(vocFS)}V) muy cerca del límite DC del inversor (${invObj.vdc}V).`});
+    if(invObj.vbat && invObj.vbat!=='none' && vbat!==invObj.vbat)
+      compAlerts.push({t:'err', m:`🔋 Voltaje incompatible: inversor requiere ${invObj.vbat}V de batería pero el banco está en ${vbat}V. Ajusta el voltaje del sistema.`});
+    if(invObj.vbat==='none')
+      compAlerts.push({t:'info', m:`ℹ️ Inversor On-Grid (sin batería). El banco de baterías no aplica para este sistema.`});
+    if(invObj.mppt && panPar > invObj.mppt)
+      compAlerts.push({t:'warn', m:`⚠️ ${panPar} strings en paralelo superan los ${invObj.mppt} MPPT del inversor. Agrupa strings con un combiner box o elige un inversor con más MPPT.`});
+  }
 
   // BATERÍAS
   const batTipo  = document.getElementById('bat-tipo').value;
@@ -2043,12 +2121,15 @@ function calcAll(){
   const chosenAh  = (selectedBatAh!==null && batAhs.includes(selectedBatAh)) ? selectedBatAh : bestOpt.ah;
   const chosenOpt = batOptions.find(o=>o.ah===chosenAh) || bestOpt;
   window.__batChosen = chosenOpt; // usado por el resumen final
-  renderBatteryDiagram(chosenOpt, batV, batTipo);
 
   const batRows = batOptions.map(o=>{
-    const sel = o.ah===chosenAh ? ' row-selected' : '';
-    const tag = o.ah===bestOpt.ah ? ' <span class="auto-badge">recomendado</span>' : '';
-    return `<tr class="${sel.trim()}" onclick="selectBatRow(${o.ah})"><td>${o.ah} Ah${tag}</td><td class="c">${o.vc}</td><td class="r"><strong>${o.nb}</strong></td><td class="r">${o.nbTotal}</td><td class="r">${f0(o.energiaWh)} Wh</td></tr>`;
+    const sel     = o.ah===chosenAh ? ' row-selected' : '';
+    const isRec   = o.ah===bestOpt.ah;
+    const isChosen= o.ah===chosenAh;
+    const tag     = isRec ? ' <span class="auto-badge">recomendado</span>' : '';
+    const hidden  = (!isRec && !isChosen) ? 'display:none' : '';
+    const cls     = (!isRec && !isChosen) ? 'bat-extra' : '';
+    return `<tr class="${sel.trim()} ${cls}" style="${hidden}" onclick="selectBatRow(${o.ah})"><td>${o.ah} Ah${tag}</td><td class="c">${o.vc}</td><td class="r"><strong>${o.nb}</strong></td><td class="r">${o.nbTotal}</td><td class="r">${f0(o.energiaWh)} Wh</td></tr>`;
   }).join('');
 
   document.getElementById('bat-results').innerHTML = `
@@ -2063,6 +2144,7 @@ function calcAll(){
       <thead><tr><th>Capacidad</th><th class="c">En serie (${batV}V)</th><th class="r">Strings paralelo</th><th class="r">Total baterías</th><th class="r">Energía banco</th></tr></thead>
       <tbody>${batRows}</tbody>
     </table></div>
+    <button onclick="(function(b){var rs=document.querySelectorAll('.bat-extra');var open=b.textContent.startsWith('+');rs.forEach(r=>r.style.display=open?'':'none');b.textContent=open?'− Ocultar opciones':'+ Ver más opciones'})(this)" style="margin-top:6px;background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;padding:3px 0">+ Ver más opciones</button>
   `;
   document.getElementById('bat-formula').innerHTML = `
     <div class="f-step">1. Consumo a almacenar:</div>  ${f0(totCons)} Wh × ${batDias} días = <span class="f-res">${f0(consBat)} Wh</span>
@@ -2172,169 +2254,7 @@ function calcAll(){
   updateSidebar();
 }
 
-/* ══════════════════════════════════════════════════════
-   VISUALIZACIÓN DE ARREGLO — cadenas serie/paralelo
-   y validación de compatibilidad con el inversor
-══════════════════════════════════════════════════════ */
-function renderArrayDiagram(d){
-  const el = document.getElementById('array-diagram');
-  if(!el) return;
-  if(!d.nPanelR || d.nPanelR<=0){ el.innerHTML=''; return; }
 
-  const rowsReal = Math.max(1, d.panPar||1);
-  const colsReal = Math.max(1, d.panSer||1);
-  const rows = Math.min(rowsReal, 4);
-  const cols = Math.min(colsReal, 6);
-  const moreRows = rowsReal - rows;
-  const moreCols = colsReal - cols;
-
-  const pw=42, ph=27, gx=16, gy=20;
-  const startX = 56, startY = 26;
-  const busX = startX + cols*(pw+gx) - gx + 30 + (moreCols>0?70:0);
-
-  let panels='', wires='', rowLabels='';
-  for(let r=0;r<rows;r++){
-    const y = startY + r*(ph+gy);
-    for(let c=0;c<cols;c++){
-      const x = startX + c*(pw+gx);
-      panels += `<rect x="${x}" y="${y}" width="${pw}" height="${ph}" rx="3" fill="var(--accent)" opacity=".88" stroke="var(--ink)" stroke-width=".6"/>
-        <line x1="${x+5}" y1="${y+ph/2}" x2="${x+pw-5}" y2="${y+ph/2}" stroke="#fff" stroke-width=".6" opacity=".5"/>
-        <line x1="${x+pw/2}" y1="${y+4}" x2="${x+pw/2}" y2="${y+ph-4}" stroke="#fff" stroke-width=".6" opacity=".5"/>`;
-      if(c<cols-1){
-        const wy=y+ph/2;
-        wires += `<line x1="${x+pw}" y1="${wy}" x2="${x+pw+gx}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
-      }
-    }
-    const lastX = startX + (cols-1)*(pw+gx) + pw;
-    const wy = y+ph/2;
-    const lineEndX = moreCols>0 ? lastX+58 : lastX;
-    if(moreCols>0){
-      wires += `<line x1="${lastX}" y1="${wy}" x2="${lastX+30}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4" stroke-dasharray="3,3"/>
-        <text x="${lastX+34}" y="${wy+4}" font-size="10.5" fill="var(--text2)">+${moreCols} más</text>`;
-    }
-    wires += `<line x1="${lineEndX}" y1="${wy}" x2="${busX}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
-    rowLabels += `<text x="${startX-8}" y="${wy+4}" font-size="10.5" fill="var(--text2)" text-anchor="end">S${r+1}</text>`;
-  }
-  if(moreRows>0){
-    const y = startY + rows*(ph+gy) - gy + 14;
-    rowLabels += `<text x="${startX}" y="${y}" font-size="11.5" fill="var(--text2)" font-style="italic">+ ${moreRows} string(s) más en paralelo →</text>`;
-  }
-
-  const busTop = startY + ph/2;
-  const busBottom = startY + (rows-1)*(ph+gy) + ph/2;
-  const invX = busX + 46, invY = (busTop+busBottom)/2 - 24, invW = 90, invH = 48;
-
-  const vocOk  = (d.invVdc!=null) ? d.vocFS <= d.invVdc : null;
-  const compatColor = vocOk===null ? 'var(--text2)' : (vocOk ? 'var(--green)' : 'var(--red)');
-  const compatBg     = vocOk===null ? 'var(--bg3)' : (vocOk ? 'var(--green-dim)' : 'var(--red-dim)');
-
-  const svgH = Math.max(140, startY + rows*(ph+gy) + (moreRows>0?26:0));
-  const svgW = invX + invW + 16;
-
-  el.innerHTML = `
-    <div class="card-title" style="margin-bottom:6px"><span>📐</span> Visualización del arreglo (cadenas serie/paralelo)</div>
-    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);padding:8px">
-      <svg viewBox="0 0 ${svgW} ${svgH}" width="100%" style="min-width:480px;display:block">
-        ${panels}${wires}${rowLabels}
-        <line x1="${busX}" y1="${busTop}" x2="${busX}" y2="${busBottom}" stroke="var(--ink2)" stroke-width="1.6"/>
-        <line x1="${busX}" y1="${(busTop+busBottom)/2}" x2="${invX}" y2="${(busTop+busBottom)/2}" stroke="var(--ink2)" stroke-width="1.6"/>
-        <rect x="${invX}" y="${invY}" width="${invW}" height="${invH}" rx="6" fill="${vocOk===false?'var(--red-dim)':'var(--bg3)'}" stroke="${vocOk===false?'var(--red)':'var(--border2)'}" stroke-width="1.4"/>
-        <text x="${invX+invW/2}" y="${invY+20}" font-size="11.5" font-weight="700" fill="var(--text)" text-anchor="middle">Inversor</text>
-        <text x="${invX+invW/2}" y="${invY+34}" font-size="10" fill="var(--text2)" text-anchor="middle">${d.invPot?d.invPot+'W':'—'}</text>
-      </svg>
-    </div>
-    <div class="g3" style="margin-top:10px;gap:8px">
-      <div class="stat"><div class="stat-label">Total paneles</div><div class="stat-val">${d.nPanelR}</div><div class="stat-unit">${rowsReal} string(s) × ${colsReal} en serie</div></div>
-      <div class="stat"><div class="stat-label">VOC string × F.S.</div><div class="stat-val">${f2(d.vocFS)}</div><div class="stat-unit">V</div></div>
-      <div class="stat"><div class="stat-label">ISC paralelo × F.S.</div><div class="stat-val">${f2(d.iscFS)}</div><div class="stat-unit">A</div></div>
-    </div>
-    <div style="margin-top:8px;background:${compatBg};border:1px solid ${compatColor};border-radius:var(--radius-sm);padding:10px 14px;font-size:12.5px;color:${compatColor};font-weight:600;display:flex;align-items:center;gap:8px">
-      ${vocOk===null
-        ? `<span>ℹ️</span><span>Selecciona un inversor del catálogo para validar compatibilidad de voltaje DC máximo.</span>`
-        : vocOk
-          ? `<span>✓</span><span>Compatible: VOC×F.S. (${f2(d.vocFS)}V) está dentro del límite DC del inversor (${d.invVdc}V máx).</span>`
-          : `<span>⚠️</span><span>Incompatible: VOC×F.S. (${f2(d.vocFS)}V) supera el máximo DC del inversor (${d.invVdc}V). Reduce paneles en serie o elige un inversor con mayor Vdc máx.</span>`
-      }
-    </div>
-    ${(d.invMppt!=null && rowsReal>d.invMppt) ? `<div style="margin-top:6px;font-size:11.5px;color:var(--amber)">⚠️ Tienes ${rowsReal} string(s) en paralelo independientes y el inversor solo tiene ${d.invMppt} MPPT — varios strings deberán combinarse en el mismo MPPT (usa combiner box o verifica que sea compatible).</div>` : ''}
-  `;
-}
-
-/* ══════════════════════════════════════════════════════
-   VISUALIZACIÓN DEL BANCO DE BATERÍAS — serie/paralelo
-══════════════════════════════════════════════════════ */
-function renderBatteryDiagram(opt, batV, batTipo){
-  const el = document.getElementById('bat-diagram');
-  if(!el || !opt || !opt.nb) { if(el) el.innerHTML=''; return; }
-
-  const vc = opt.vc;       // baterías en serie por string
-  const nb = opt.nb;       // strings en paralelo
-  const rows = Math.min(nb, 4);
-  const cols = Math.min(vc, 6);
-  const moreRows = nb - rows;
-  const moreCols = vc - cols;
-
-  const bw=36, bh=24, gx=14, gy=18;
-  const startX = 50, startY = 24;
-  const lastColX = startX + (cols-1)*(bw+gx) + bw;
-  const busX = (moreCols>0 ? lastColX+30+58 : lastColX+30);
-
-  let cells='', wires='', labels='';
-  for(let r=0;r<rows;r++){
-    const y = startY + r*(bh+gy);
-    for(let c=0;c<cols;c++){
-      const x = startX + c*(bw+gx);
-      cells += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="3" fill="var(--green)" opacity=".85" stroke="var(--ink)" stroke-width=".6"/>
-        <line x1="${x+6}" y1="${y+bh/2}" x2="${x+bw-6}" y2="${y+bh/2}" stroke="#fff" stroke-width=".6" opacity=".6"/>`;
-      if(c<cols-1){
-        const wy=y+bh/2;
-        wires += `<line x1="${x+bw}" y1="${wy}" x2="${x+bw+gx}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
-      }
-    }
-    const wy = y+bh/2;
-    if(moreCols>0){
-      wires += `<line x1="${lastColX}" y1="${wy}" x2="${lastColX+30}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4" stroke-dasharray="3,3"/>
-        <text x="${lastColX+34}" y="${wy+4}" font-size="10.5" fill="var(--text2)">+${moreCols} más</text>`;
-      wires += `<line x1="${lastColX+88}" y1="${wy}" x2="${busX}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
-    } else {
-      wires += `<line x1="${lastColX}" y1="${wy}" x2="${busX}" y2="${wy}" stroke="var(--ink2)" stroke-width="1.4"/>`;
-    }
-    labels += `<text x="${startX-8}" y="${wy+4}" font-size="10.5" fill="var(--text2)" text-anchor="end">B${r+1}</text>`;
-  }
-  if(moreRows>0){
-    const y = startY + rows*(bh+gy) - gy + 14;
-    labels += `<text x="${startX}" y="${y}" font-size="11.5" fill="var(--text2)" font-style="italic">+ ${moreRows} string(s) más en paralelo →</text>`;
-  }
-
-  const busTop = startY + bh/2;
-  const busBottom = startY + (rows-1)*(bh+gy) + bh/2;
-  const invX = busX + 30, invY = (busTop+busBottom)/2 - 22, invW = 84, invH = 44;
-  const svgH = Math.max(120, startY + rows*(bh+gy) + (moreRows>0?26:0));
-  const svgW = invX + invW + 16;
-
-  el.innerHTML = `
-    <div class="card-title" style="margin-bottom:6px"><span>🔋</span> Visualización del banco de baterías (${batTipo.toUpperCase()} ${batV}V)</div>
-    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);padding:8px">
-      <svg viewBox="0 0 ${svgW} ${svgH}" width="100%" style="min-width:420px;display:block">
-        ${cells}${wires}${labels}
-        <line x1="${busX}" y1="${busTop}" x2="${busX}" y2="${busBottom}" stroke="var(--ink2)" stroke-width="1.6"/>
-        <line x1="${busX}" y1="${(busTop+busBottom)/2}" x2="${invX}" y2="${(busTop+busBottom)/2}" stroke="var(--ink2)" stroke-width="1.6"/>
-        <rect x="${invX}" y="${invY}" width="${invW}" height="${invH}" rx="6" fill="var(--bg3)" stroke="var(--border2)" stroke-width="1.4"/>
-        <text x="${invX+invW/2}" y="${invY+18}" font-size="11" font-weight="700" fill="var(--text)" text-anchor="middle">Inversor</text>
-        <text x="${invX+invW/2}" y="${invY+32}" font-size="9.5" fill="var(--text2)" text-anchor="middle">/ Cargador</text>
-      </svg>
-    </div>
-    <div class="g3" style="margin-top:10px;gap:8px">
-      <div class="stat"><div class="stat-label">Total baterías</div><div class="stat-val">${opt.nbTotal}</div><div class="stat-unit">${nb} string(s) × ${vc} en serie</div></div>
-      <div class="stat"><div class="stat-label">Capacidad por string</div><div class="stat-val">${opt.ah}</div><div class="stat-unit">Ah</div></div>
-      <div class="stat green"><div class="stat-label">Energía total banco</div><div class="stat-val">${f0(opt.energiaWh)}</div><div class="stat-unit">Wh</div></div>
-    </div>
-  `;
-}
-
-/* ══════════════════════════════════════════════════════
-   MODO RECIBO
-══════════════════════════════════════════════════════ */
 function calcDesdeRecibo(){
   const kwh = +document.getElementById('r-kwh').value||0;
   const hsp = +document.getElementById('r-hsp').value||4.5;
