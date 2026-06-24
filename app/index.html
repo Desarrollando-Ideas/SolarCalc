@@ -1605,7 +1605,12 @@ function showSection(id){
     el.classList.toggle('active', el.getAttribute('onclick')?.includes(id));
   });
   window.scrollTo({top:0, behavior:'instant'});
-  if(id==='s-calc')         setTimeout(()=>{ if(__pvgisMap) __pvgisMap.invalidateSize(); }, 50);
+  if(id==='s-calc'){
+    setTimeout(()=>{
+      if(!__pvgisMap) initPvgisMap();
+      else __pvgisMap.invalidateSize();
+    }, 120);
+  }
   if(id==='s-paneles-cat')   renderPanelCatalog();
   if(id==='s-inv-cat')       renderInvCatalog();
   if(id==='s-bat-cat')       renderBatCatalog();
@@ -1647,11 +1652,29 @@ function initPvgisMap(){
   if(!mapEl || typeof L === 'undefined' || __pvgisMap) return;
   const lat = +document.getElementById('p-lat').value || 7.9;
   const lon = +document.getElementById('p-lon').value || -72.5;
-  __pvgisMap = L.map('pvgis-map').setView([lat, lon], 9);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap', maxZoom: 18
-  }).addTo(__pvgisMap);
+  __pvgisMap = L.map('pvgis-map', {zoomControl:true}).setView([lat, lon], 9);
+
+  // Intentar OSM primero, con fallback a CartoDB si falla
+  const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap', maxZoom: 18, crossOrigin: true
+  });
+  const cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap © CartoDB', maxZoom: 19, crossOrigin: true
+  });
+
+  // Probar OSM; si el primer tile falla, cambiar a CartoDB
+  osmLayer.addTo(__pvgisMap);
+  let tileOk = false;
+  osmLayer.on('tileload', () => { tileOk = true; });
+  osmLayer.on('tileerror', () => {
+    if(!tileOk){
+      __pvgisMap.removeLayer(osmLayer);
+      cartoLayer.addTo(__pvgisMap);
+    }
+  });
+
   __pvgisMarker = L.marker([lat, lon], {draggable:true}).addTo(__pvgisMap);
+  setTimeout(()=>{ if(__pvgisMap) __pvgisMap.invalidateSize(); }, 200);
   __pvgisMarker.on('dragend', e => {
     const p = e.target.getLatLng();
     document.getElementById('p-lat').value = Math.round(p.lat*10000)/10000;
@@ -1664,6 +1687,12 @@ function initPvgisMap(){
     document.getElementById('p-lon').value = Math.round(e.latlng.lng*10000)/10000;
     calcAll();
   });
+
+  // En móvil, mostrar el box manual por defecto (más útil si el mapa no carga bien)
+  if(window.innerWidth <= 768){
+    const box = document.getElementById('pvgis-manual-box');
+    if(box) box.style.display = 'block';
+  }
 }
 
 function syncPvgisMapFromInputs(){
@@ -3257,9 +3286,11 @@ document.getElementById('p-fecha').value = new Date().toISOString().split('T')[0
 populateSelects();
 renderCargas();
 calcAire();
-calcAll();
 wrapFormulaBoxes();
-setTimeout(initPvgisMap, 100);
+// Inicializar el mapa primero (necesita el hilo libre para medir el div)
+setTimeout(initPvgisMap, 80);
+// calcAll después para no bloquear el render del mapa
+setTimeout(calcAll, 150);
 </script>
 </body>
 </html>
