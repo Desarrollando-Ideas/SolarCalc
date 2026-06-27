@@ -127,7 +127,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 /* ── MAIN ── */
 .main{padding:22px 20px 70px;overflow-x:hidden;max-width:100%}
-@media(max-width:768px){.main{padding:12px 10px 80px}}
+@media(max-width:768px){.main{padding:16px 12px 70px}}
 .section{display:none}
 .section.active{display:block}
 
@@ -135,26 +135,28 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .page-title h1{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--text)}
 .page-title p{font-size:12px;color:var(--text2);margin-top:2px}
 .page-actions{display:flex;gap:8px;flex-wrap:wrap}
-@media(max-width:768px){
-  .page-title{margin-bottom:12px}
-  .page-title h1{font-size:16px}
-  .page-actions .btn{font-size:11px;padding:5px 10px}
-}
 
 .card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);margin-bottom:14px}
 .card-sm{padding:14px 16px}
-.card-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .card-title span{font-size:16px}
-@media(max-width:768px){
-  .card{padding:14px 12px;border-radius:10px;margin-bottom:10px}
-  .card-title{font-size:11px;margin-bottom:10px}
-}
 
 .g2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 @media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.g4,.g3,.g2{grid-template-columns:1fr;gap:8px}}
+@media(max-width:600px){
+  input,select,textarea{font-size:16px;padding:10px 12px}
+  .card{padding:14px 12px;margin-bottom:10px}
+  .stat{padding:10px 12px}
+  .stat-val{font-size:20px}
+  th,td{padding:7px 8px;font-size:11px}
+  .del{font-size:16px;padding:5px 8px}
+  .modal{padding:16px;max-height:85vh}
+  .modal-actions{justify-content:stretch}
+  .modal-actions .btn{flex:1;justify-content:center}
+}
 
 .field{margin-bottom:12px}
 .field label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
@@ -168,12 +170,6 @@ textarea{resize:vertical;min-height:70px}
 input.w60{width:64px}
 input.w80{width:80px}
 input.w100{width:100px}
-@media(max-width:768px){
-  input,select,textarea{font-size:16px;padding:10px 12px} /* 16px previene zoom en iOS */
-  .field{margin-bottom:10px}
-  .field-row{gap:6px}
-  input.w60,input.w80,input.w100{width:100%}
-}
 
 .mode-tabs{display:flex;gap:0;margin-bottom:20px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;background:var(--bg3)}
 .mode-tab{flex:1;padding:9px 16px;text-align:center;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);transition:all var(--transition)}
@@ -192,18 +188,8 @@ input.w100{width:100px}
 .stat.purple .stat-val{color:var(--purple)}
 .stat-unit{font-size:11px;color:var(--text2);margin-top:3px}
 .stat-formula{font-size:10px;color:var(--text3);margin-top:6px;font-family:monospace;line-height:1.4}
-@media(max-width:600px){
-  .stat{padding:10px 12px}
-  .stat-val{font-size:20px}
-  .stat-label{font-size:9px}
-  .stat-unit{font-size:10px}
-}
 
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-@media(max-width:600px){
-  .tbl-wrap{border-radius:8px;border:1px solid var(--border)}
-  .tbl-wrap::after{content:'← desliza →';display:block;text-align:center;font-size:10px;color:var(--text3);padding:4px;background:var(--bg3)}
-}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{padding:9px 12px;background:var(--bg3);color:var(--text2);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
 td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
@@ -222,25 +208,16 @@ td.r{text-align:right}
 td.c{text-align:center}
 td input,td select{background:var(--bg4);border:1px solid transparent;border-radius:4px;padding:5px 8px;font-size:12px;color:var(--text)}
 td input:focus,td select:focus{border-color:var(--accent);outline:none}
-@media(max-width:600px){
-  th,td{padding:7px 8px;font-size:11px}
-  td input,td select{font-size:14px;padding:6px 7px}
-}
 
 .add-row-btn{width:100%;padding:8px;margin-top:6px;background:transparent;border:1px dashed var(--border);border-radius:var(--radius-sm);color:var(--text3);cursor:pointer;font-size:12px;transition:all var(--transition);display:flex;align-items:center;justify-content:center;gap:6px}
 .add-row-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 
 .del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:3px 6px;border-radius:4px;transition:all var(--transition);line-height:1}
 .del:hover{color:var(--red);background:var(--red-dim)}
-@media(max-width:600px){
-  .del{font-size:16px;padding:5px 8px} /* más fácil de tocar */
-  .add-row-btn{padding:10px;font-size:13px}
-}
 
 .formula-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-family:monospace;font-size:12px;color:var(--text2);line-height:1.7;margin-top:10px}
 .formula-box .f-step{color:var(--green);font-weight:600}
 .formula-box .f-res{color:var(--amber)}
-@media(max-width:600px){.formula-box{font-size:11px;padding:8px 10px}}
 
 .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
 .badge-green{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
@@ -267,12 +244,6 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 .confirm-icon{font-size:36px;margin-bottom:12px}
 .confirm-title{font-size:16px;font-weight:700;margin-bottom:6px}
 .confirm-msg{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:4px}
-@media(max-width:600px){
-  .modal{padding:16px;border-radius:12px;max-height:85vh}
-  .modal-title{font-size:14px}
-  .modal-actions{justify-content:stretch}
-  .modal-actions .btn{flex:1;justify-content:center}
-}
 
 .equip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
 .equip-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;transition:border-color var(--transition)}
@@ -283,10 +254,6 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 .equip-specs{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .equip-spec{font-size:10px;padding:2px 7px;border-radius:99px;background:var(--bg4);border:1px solid var(--border);color:var(--text2)}
 .equip-actions{display:flex;gap:6px;margin-top:10px}
-@media(max-width:600px){
-  .equip-grid{grid-template-columns:1fr}
-  .equip-actions .btn{flex:1;justify-content:center;font-size:11px}
-}
 
 .tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--bg4);border:1px solid var(--border);color:var(--text3);font-size:9px;cursor:help;font-weight:700;margin-left:4px;position:relative}
 .tip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);color:var(--text);font-size:11px;padding:6px 10px;border-radius:6px;white-space:normal;max-width:250px;z-index:100;box-shadow:var(--shadow);font-weight:400}
@@ -307,11 +274,13 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 .manual-badge{font-size:9px;color:var(--amber);margin-left:4px}
 
 /* ── PAYWALL (Pro lock) ── */
-.paywall{text-align:center;padding:56px 24px;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.paywall{
+  text-align:center;padding:56px 24px;background:var(--card-bg);
+  border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);
+}
 .paywall-icon{font-size:38px;margin-bottom:14px}
 .paywall h2{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--text);margin-bottom:8px}
 .paywall p{font-size:13px;color:var(--text2);max-width:380px;margin:0 auto 20px;line-height:1.6}
-@media(max-width:600px){.paywall{padding:36px 16px}}
 
 /* ── LOGIN OVERLAY ── */
 .login-overlay{position:fixed;inset:0;background:var(--bg);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
@@ -322,10 +291,6 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 .login-card p{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.5}
 .btn-google{width:100%;padding:11px;border-radius:10px;background:var(--card-bg);border:1.5px solid var(--border);color:var(--text);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all var(--transition)}
 .btn-google:hover{border-color:var(--text2);box-shadow:var(--shadow)}
-@media(max-width:600px){
-  .login-card{padding:24px 18px;border-radius:12px}
-  .login-card h1{font-size:17px}
-}
 
 @media print{
   .topbar,.sidebar,.mobile-nav,.mobile-topbar,.icon-btn,.btn-secondary,.add-row-btn,.del,.modal-overlay,.login-overlay{display:none!important}
@@ -697,7 +662,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         </div>
         <div id="panel-results"></div>
       </div>
-      
+
       <div class="formula-box" id="panel-formula">Ingresa cargas para ver el cálculo de paneles…</div>
     </div>
 
@@ -782,7 +747,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         </div>
       </div>
       <div id="bat-results"></div>
-      
+
       <div class="alert alert-info" style="margin:8px 0"><span class="alert-icon">💡</span><div style="font-size:11px">Haz clic en una fila de la tabla para elegir esa capacidad de batería. Por defecto se selecciona automáticamente la opción más eficiente (menor cantidad de baterías).</div></div>
       <div class="formula-box" id="bat-formula">Configura las baterías para ver el cálculo…</div>
     </div>
@@ -2002,18 +1967,16 @@ function calcAll(){
   const nPanel  = panWp > 0 ? ppico / panWp : 0;
   const nPanelR = Math.ceil(nPanel);
 
-  // Auto-distribuir serie/paralelo: en modo auto, calcular la mejor combinación
-  // que cumpla nPanelR sin superar el Vdc del inversor
-  const _invSelId0 = document.getElementById('inv-sel').value;
-  const _invObj0   = DB.inversores ? DB.inversores.find(x=>x.id===_invSelId0) : null;
-  const _vdcLim    = _invObj0 ? _invObj0.vdc : 500;
-  const maxSerAuto = panVoc > 0 ? Math.max(1, Math.floor(_vdcLim / (panVoc * fs))) : 1;
+  // Auto-distribuir serie/paralelo cuando está en modo automático
   if(autoPanel && nPanelR > 0){
+    const _invId  = document.getElementById('inv-sel').value;
+    const _invObj = DB.inversores ? DB.inversores.find(x=>x.id===_invId) : null;
+    const _vdcLim = _invObj ? _invObj.vdc : 500;
+    const maxSer  = panVoc > 0 ? Math.max(1, Math.floor(_vdcLim / (panVoc * fs))) : 1;
     let bSer=1, bPar=nPanelR, bTotal=Infinity;
-    for(let s=1; s<=Math.min(maxSerAuto, nPanelR, 20); s++){
-      const p = Math.ceil(nPanelR/s);
-      const t = s*p;
-      if(t < bTotal || (t===bTotal && Math.abs(s-p)<Math.abs(bSer-bPar))){ bTotal=t; bSer=s; bPar=p; }
+    for(let s=1; s<=Math.min(maxSer, nPanelR, 20); s++){
+      const p=Math.ceil(nPanelR/s), t=s*p;
+      if(t<bTotal||(t===bTotal&&Math.abs(s-p)<Math.abs(bSer-bPar))){bTotal=t;bSer=s;bPar=p;}
     }
     document.getElementById('pan-ser').value = bSer;
     document.getElementById('pan-par').value = bPar;
@@ -2037,7 +2000,6 @@ function calcAll(){
       <div class="stat amber"><div class="stat-label">ISC×F.S. → Breaker DC</div><div class="stat-val">${f2(iscFS)}</div><div class="stat-unit">A → Breaker ${nextBreakerUp(iscFS)}A</div></div>
       <div class="stat amber"><div class="stat-label">VOC×F.S. → DPS DC</div><div class="stat-val">${f2(vocFS)}</div><div class="stat-unit">V → DPS ≥${f0(vocFS)}V</div></div>
     </div>
-    ${compAlerts.length ? '<div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">'+compAlerts.map(a=>`<div style="padding:8px 12px;border-radius:6px;font-size:12px;font-weight:600;background:${a.t==='err'?'var(--red-dim)':'var(--amber-dim)'};border:1px solid ${a.t==='err'?'var(--red)':'var(--amber)'};color:${a.t==='err'?'var(--red)':'var(--amber)'}">${a.m}</div>`).join('')+'</div>' : ''}
   `;
   document.getElementById('panel-formula').innerHTML = `
     <div class="f-step">1. Consumo con F.S.:</div>  ${f0(totCons)} Wh × ${fs} = <span class="f-res">${f0(consFSWh)} Wh/día</span>
@@ -2077,23 +2039,31 @@ function calcAll(){
 \n<div class="f-step">Protección baterías (DC):</div>  ${f0(potFSW)} W ÷ ${vbat} V = ${f2(batProt)} A → Breaker <span class="f-res">${nextBreakerDown(batProt)} A ↓ (por debajo)</span>
 \n<div class="f-step">Protección inversor (AC):</div>  ${f0(potFSW)} W ÷ 120 V = ${f2(acProt)} A → Breaker <span class="f-res">${nextBreakerDown(acProt)} A ↓ (por debajo)</span>`;
 
-  // VISUALIZACIÓN DE ARREGLO + alertas de compatibilidad cruzada
+  // ALERTAS DE COMPATIBILIDAD CRUZADA (paneles ↔ inversor ↔ baterías)
   const invSelId = document.getElementById('inv-sel').value;
   const invObj   = DB.inversores ? DB.inversores.find(x=>x.id===invSelId) : null;
-
   const compAlerts = [];
   if(invObj){
     if(vocFS > invObj.vdc)
-      compAlerts.push({t:'err', m:`⚡ VOC×F.S. (${f2(vocFS)}V) supera el límite DC del inversor (${invObj.vdc}V). Reduce paneles en serie o elige otro inversor.`});
+      compAlerts.push({t:'err', m:`⚡ VOC×F.S. (${f2(vocFS)}V) supera el Vdc máx del inversor (${invObj.vdc}V). Reduce paneles en serie o elige otro inversor.`});
     else if(vocFS > invObj.vdc*0.9)
-      compAlerts.push({t:'warn', m:`⚠️ VOC×F.S. (${f2(vocFS)}V) muy cerca del límite DC del inversor (${invObj.vdc}V).`});
+      compAlerts.push({t:'warn', m:`⚠️ VOC×F.S. (${f2(vocFS)}V) muy cerca del Vdc máx (${invObj.vdc}V). Considera reducir 1 panel en serie.`});
     if(invObj.vbat && invObj.vbat!=='none' && vbat!==invObj.vbat)
-      compAlerts.push({t:'err', m:`🔋 Voltaje incompatible: inversor requiere ${invObj.vbat}V de batería pero el banco está en ${vbat}V. Ajusta el voltaje del sistema.`});
+      compAlerts.push({t:'err', m:`🔋 Voltaje incompatible: inversor requiere ${invObj.vbat}V de batería pero el banco está en ${vbat}V.`});
     if(invObj.vbat==='none')
       compAlerts.push({t:'info', m:`ℹ️ Inversor On-Grid (sin batería). El banco de baterías no aplica para este sistema.`});
     if(invObj.mppt && panPar > invObj.mppt)
-      compAlerts.push({t:'warn', m:`⚠️ ${panPar} strings en paralelo superan los ${invObj.mppt} MPPT del inversor. Agrupa strings con un combiner box o elige un inversor con más MPPT.`});
+      compAlerts.push({t:'warn', m:`⚠️ ${panPar} strings superan los ${invObj.mppt} MPPT del inversor. Agrupa strings con un combiner box.`});
   }
+  // Inyectar alertas al final de panel-results
+  const alertsHTML = compAlerts.length ? '<div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">'
+    + compAlerts.map(a=>`<div style="padding:8px 12px;border-radius:6px;font-size:12px;font-weight:600;
+        background:${a.t==='err'?'var(--red-dim)':a.t==='warn'?'var(--amber-dim)':'var(--accent-dim)'};
+        border:1px solid ${a.t==='err'?'var(--red)':a.t==='warn'?'var(--amber)':'var(--accent)'};
+        color:${a.t==='err'?'var(--red)':a.t==='warn'?'var(--amber)':'var(--accent)'}">${a.m}</div>`).join('')
+    + '</div>' : '';
+  const prEl = document.getElementById('panel-results');
+  if(prEl) prEl.insertAdjacentHTML('beforeend', alertsHTML);
 
   // BATERÍAS
   const batTipo  = document.getElementById('bat-tipo').value;
@@ -2120,15 +2090,13 @@ function calcAll(){
   // Si el usuario ya eligió una capacidad manualmente y sigue siendo válida, se respeta.
   const chosenAh  = (selectedBatAh!==null && batAhs.includes(selectedBatAh)) ? selectedBatAh : bestOpt.ah;
   const chosenOpt = batOptions.find(o=>o.ah===chosenAh) || bestOpt;
-  window.__batChosen = chosenOpt; // usado por el resumen final
-
   const batRows = batOptions.map(o=>{
-    const sel     = o.ah===chosenAh ? ' row-selected' : '';
-    const isRec   = o.ah===bestOpt.ah;
-    const isChosen= o.ah===chosenAh;
-    const tag     = isRec ? ' <span class="auto-badge">recomendado</span>' : '';
-    const hidden  = (!isRec && !isChosen) ? 'display:none' : '';
-    const cls     = (!isRec && !isChosen) ? 'bat-extra' : '';
+    const sel      = o.ah===chosenAh ? ' row-selected' : '';
+    const isRec    = o.ah===bestOpt.ah;
+    const isChosen = o.ah===chosenAh;
+    const tag      = isRec ? ' <span class="auto-badge">recomendado</span>' : '';
+    const hidden   = (!isRec && !isChosen) ? 'display:none' : '';
+    const cls      = (!isRec && !isChosen) ? 'bat-extra' : '';
     return `<tr class="${sel.trim()} ${cls}" style="${hidden}" onclick="selectBatRow(${o.ah})"><td>${o.ah} Ah${tag}</td><td class="c">${o.vc}</td><td class="r"><strong>${o.nb}</strong></td><td class="r">${o.nbTotal}</td><td class="r">${f0(o.energiaWh)} Wh</td></tr>`;
   }).join('');
 
@@ -2254,7 +2222,10 @@ function calcAll(){
   updateSidebar();
 }
 
-
+/* ══════════════════════════════════════════════════════
+   VISUALIZACIÓN DE ARREGLO — cadenas serie/paralelo
+   y validación de compatibilidad con el inversor
+══════════════════════════════════════════════════════ */
 function calcDesdeRecibo(){
   const kwh = +document.getElementById('r-kwh').value||0;
   const hsp = +document.getElementById('r-hsp').value||4.5;
